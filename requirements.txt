@@ -1,0 +1,16 @@
+# FastAPI Backend
+fastapi==0.104.1
+uvicorn==0.23.2
+sqlalchemy==1.4.46
+pymysql==1.1.0
+pydantic==2.5.2
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+requests==2.31.0
+cryptography==42.0.2
+
+# PyQt UI
+PyQt5==5.15.9
+
+# For building executables
+pyinstaller==6.1.0 
