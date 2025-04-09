@@ -106,81 +106,6 @@ class ItemDialog(QDialog):
             "price": float(self.price_edit.text() or 0)
         }
 
-class PureCheckBox(QAbstractButton):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setCheckable(True)
-        self.setFixedSize(20, 20)
-        self.setFocusPolicy(Qt.NoFocus)
-        self.setMouseTracking(True)
-        self._hovered = False
-
-    def enterEvent(self, event):
-        self._hovered = True
-        self.update()
-
-    def leaveEvent(self, event):
-        self._hovered = False
-        self.update()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        opt = QStyleOptionButton()
-        opt.initFrom(self)
-        opt.state |= QStyle.State_Enabled
-        opt.state |= QStyle.State_On if self.isChecked() else QStyle.State_Off
-        if self._hovered:
-            opt.state |= QStyle.State_MouseOver
-
-        opt.rect = self.rect()
-        self.style().drawControl(QStyle.CE_CheckBox, opt, painter, self)
-
-    def sizeHint(self):
-        return QSize(20, 20)
-
-class CheckBoxHeader(QHeaderView):
-    def __init__(self, orientation, parent=None):
-        super().__init__(orientation, parent)
-        self.setSectionsClickable(True)
-        self.is_checked = False
-
-    def paintSection(self, painter, rect, logicalIndex):
-        super().paintSection(painter, rect, logicalIndex)
-
-        if logicalIndex == 0:  # First column header
-            option = QStyleOptionButton()
-            option.rect = self.checkboxRect(rect)
-            option.state = QStyle.State_Enabled
-            if self.is_checked:
-                option.state |= QStyle.State_On
-            else:
-                option.state |= QStyle.State_Off
-
-            painter.save()
-            self.style().drawControl(QStyle.CE_CheckBox, option, painter)
-            painter.restore()
-
-    def checkboxRect(self, rect):
-        """Calculate the position for the checkbox to be centered in the header cell."""
-        checkbox_style = QStyleOptionButton()
-        size = self.style().sizeFromContents(
-            QStyle.CT_CheckBox, checkbox_style, QSize(20, 20), self
-        )
-        x = rect.x() + (rect.width() - size.width()) // 2
-        y = rect.y() + (rect.height() - size.height()) // 2
-        return QRect(x, y, size.width(), size.height())
-
-    def mousePressEvent(self, event):
-        """Handle click event in the header section."""
-        index = self.logicalIndexAt(event.pos())
-        if index == 0:  # If clicking on the first column's header
-            section_rect = self.sectionRect(index)  # Get the rect for the header section
-            if self.checkboxRect(section_rect).contains(event.pos()):
-                self.is_checked = not self.is_checked
-                self.updateSection(0)
-                self.parent().selectAllRows(self.is_checked)
-        super().mousePressEvent(event)
-
 class MainWindow(QMainWindow):
     """Main application window"""
     
@@ -214,10 +139,10 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
         self.table.horizontalHeader().setSectionResizeMode(11, QHeaderView.Stretch)
         self.table.setColumnWidth(0, 20)  # First column (checkbox)
-        self.table.setStyleSheet("QHeaderView::section { padding: 8px; font-size: 14px;}")
+        self.table.setStyleSheet("QHeaderView::section { padding: 8px; padding-left: 10px; font-size: 14px;}")
         checkbox_all = QCheckBox()
         checkbox_all.setChecked(False)
-        
+        checkbox_all.stateChanged.connect(self.toggle_select_all)
         # Create a QWidget to contain the checkbox
         
         widget = QWidget(self.table.horizontalHeader())
@@ -268,11 +193,9 @@ class MainWindow(QMainWindow):
             checkbox_layout.setContentsMargins(0, 0, 0, 0)
             checkbox_widget = QWidget()
             checkbox = QCheckBox()
-            checkbox.setStyleSheet("""QCheckBox::indicator {    margin-left: 0px;    margin-right: 0px;}QCheckBox {    padding: 0px;    margin: 0px;}""")
             checkbox_layout.setAlignment(Qt.AlignCenter)
             checkbox_layout.addWidget(checkbox)
             checkbox_widget.setLayout(checkbox_layout)
-            checkbox_widget.setStyleSheet("QWidget { padding-top: 6px; }")
             self.table.setCellWidget(row, 0, checkbox_widget)
 
             self.table.setItem(row, 1, QTableWidgetItem(str(item.get("id", ""))))
@@ -290,7 +213,7 @@ class MainWindow(QMainWindow):
             actions_layout.addWidget(edit_button)
             
             delete_button = QPushButton("Delete")
-            delete_button.clicked.connect(lambda checked, i=item: self.delete_item(i))
+            delete_button.clicked.connect(lambda checked, i=item: self.delete_item(i)) 
             actions_layout.addWidget(delete_button)
             
             actions_widget.setLayout(actions_layout)
@@ -330,7 +253,13 @@ class MainWindow(QMainWindow):
                     self.load_data()
             except Exception as e:
                 self.show_error(str(e))
-    
+
+    def toggle_select_all(self, state):
+        for row in range(self.table.rowCount()):
+            item = self.table.cellWidget(row, 0).findChild(QCheckBox)
+            if item:
+                item.setCheckState(state)
+
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
 
