@@ -9,7 +9,7 @@ def get_item(db: Session, item_id: int) -> Optional[Item]:
 
 
 def get_items(db: Session, skip: int = 0, limit: int = 100) -> List[Item]:
-    return db.query(Item).offset(skip).limit(limit).all()
+    return db.query(Item).order_by(Item.id).offset(skip).limit(limit).all()
 
 
 def create_item(db: Session, item: ItemCreate) -> Item:
