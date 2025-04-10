@@ -2,14 +2,14 @@ import sys
 import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
-    QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
-    QLabel, QLineEdit, QFormLayout, QMessageBox, QHeaderView,
-    QDialog, QDialogButtonBox
+    QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,QAbstractButton,
+    QLabel, QLineEdit, QFormLayout, QMessageBox, QHeaderView,QAbstractItemView,
+    QDialog, QDialogButtonBox, QSpacerItem, QSizePolicy, QStyledItemDelegate, QStyle, QStyleOptionButton, QCheckBox
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QRect, QEvent
+from PyQt5.QtGui import QPainter
 import requests
 import json
-
 
 class ApiClient:
     """Client to interact with the FastAPI backend"""
@@ -43,7 +43,6 @@ class ApiClient:
         response = requests.delete(f"{self.base_url}/items/{item_id}")
         return response.status_code == 204
 
-
 class DataFetcherThread(QThread):
     """Thread for fetching data from API"""
     data_fetched = pyqtSignal(list)
@@ -60,8 +59,8 @@ class DataFetcherThread(QThread):
         except Exception as e:
             self.error_occurred.emit(str(e))
 
-
 class ItemDialog(QDialog):
+
     """Dialog for creating/editing items"""
     
     def __init__(self, parent=None, item=None):
@@ -107,19 +106,20 @@ class ItemDialog(QDialog):
             "price": float(self.price_edit.text() or 0)
         }
 
-
 class MainWindow(QMainWindow):
     """Main application window"""
     
     def __init__(self):
         super().__init__()
-        self.api_client = ApiClient()
+        # uic.loadUi("layout.ui", self)
         self.init_ui()
+
+        self.api_client = ApiClient()
         self.load_data()
     
     def init_ui(self):
         self.setWindowTitle("Shipping Application")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1500, 600)
         
         # Central widget
         central_widget = QWidget()
@@ -134,19 +134,43 @@ class MainWindow(QMainWindow):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["ID", "Name", "Description", "Price", "Actions"])
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.table.setColumnCount(12)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setHorizontalHeaderLabels(["", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
+        self.table.horizontalHeader().setSectionResizeMode(11, QHeaderView.Stretch)
+        self.table.setColumnWidth(0, 20)  # First column (checkbox)
+        self.table.setStyleSheet("QHeaderView::section { padding: 8px; padding-left: 10px; font-size: 14px;}")
+        checkbox_all = QCheckBox()
+        checkbox_all.setChecked(False)
+        checkbox_all.stateChanged.connect(self.toggle_select_all)
+        # Create a QWidget to contain the checkbox
+        
+        widget = QWidget(self.table.horizontalHeader())
+        layout = QHBoxLayout(widget)
+        widget.setStyleSheet("QWidget { padding-top: 6px; }")
+        
+        layout.setAlignment(Qt.AlignCenter)  # Center the checkbox
+        layout.addWidget(checkbox_all)
+        widget.setLayout(layout)
+
+        # Set the widget in the header
+        self.table.setCellWidget(0, 0, widget)
+
         main_layout.addWidget(self.table)
         
         # Buttons
         button_layout = QHBoxLayout()
         
-        self.add_button = QPushButton("Add Item")
+        h_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        button_layout.addSpacerItem(h_spacer)
+
+        self.add_button = QPushButton("Execute")
+        self.add_button.setStyleSheet("QPushButton { background-color: #3498db;color: white;border-radius: 8px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #2980b9;}QPushButton:pressed {    background-color: #1c598a;}")
         self.add_button.clicked.connect(self.add_item)
         button_layout.addWidget(self.add_button)
         
         self.refresh_button = QPushButton("Refresh")
+        self.refresh_button.setStyleSheet("QPushButton { background-color: #e74c3c;;color: white;border-radius: 8px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #c0392b;}QPushButton:pressed {    background-color: #a93226;}")
         self.refresh_button.clicked.connect(self.load_data)
         button_layout.addWidget(self.refresh_button)
         
@@ -165,10 +189,19 @@ class MainWindow(QMainWindow):
             self.table.insertRow(row)
             
             # Add item data
-            self.table.setItem(row, 0, QTableWidgetItem(str(item.get("id", ""))))
-            self.table.setItem(row, 1, QTableWidgetItem(item.get("name", "")))
-            self.table.setItem(row, 2, QTableWidgetItem(item.get("description", "")))
-            self.table.setItem(row, 3, QTableWidgetItem(str(item.get("price", ""))))
+            checkbox_layout = QHBoxLayout()
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+            checkbox_widget = QWidget()
+            checkbox = QCheckBox()
+            checkbox_layout.setAlignment(Qt.AlignCenter)
+            checkbox_layout.addWidget(checkbox)
+            checkbox_widget.setLayout(checkbox_layout)
+            self.table.setCellWidget(row, 0, checkbox_widget)
+
+            self.table.setItem(row, 1, QTableWidgetItem(str(item.get("id", ""))))
+            self.table.setItem(row, 2, QTableWidgetItem(item.get("name", "")))
+            self.table.setItem(row, 3, QTableWidgetItem(item.get("description", "")))
+            self.table.setItem(row, 4, QTableWidgetItem(str(item.get("price", ""))))
             
             # Action buttons
             actions_layout = QHBoxLayout()
@@ -180,11 +213,11 @@ class MainWindow(QMainWindow):
             actions_layout.addWidget(edit_button)
             
             delete_button = QPushButton("Delete")
-            delete_button.clicked.connect(lambda checked, i=item: self.delete_item(i))
+            delete_button.clicked.connect(lambda checked, i=item: self.delete_item(i)) 
             actions_layout.addWidget(delete_button)
             
             actions_widget.setLayout(actions_layout)
-            self.table.setCellWidget(row, 4, actions_widget)
+            self.table.setCellWidget(row, 11, actions_widget)
     
     def add_item(self):
         dialog = ItemDialog(self)
@@ -220,7 +253,13 @@ class MainWindow(QMainWindow):
                     self.load_data()
             except Exception as e:
                 self.show_error(str(e))
-    
+
+    def toggle_select_all(self, state):
+        for row in range(self.table.rowCount()):
+            item = self.table.cellWidget(row, 0).findChild(QCheckBox)
+            if item:
+                item.setCheckState(state)
+
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
 
