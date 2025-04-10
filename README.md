@@ -6,7 +6,7 @@ A cross-platform application for managing shipping operations, built with PyQt5 
 
 - Modern PyQt5-based user interface
 - FastAPI backend with automatic API documentation
-- MySQL database support
+- SQL Server database support
 - Cross-platform compatibility (Windows, macOS, Linux)
 
 ## Development Setup
@@ -14,7 +14,28 @@ A cross-platform application for managing shipping operations, built with PyQt5 
 ### Prerequisites
 
 - Python 3.8 or higher
-- Docker and Docker Compose (for local development with MySQL)
+- Docker and Docker Compose (for local development with SQL Server)
+- SQL Server ODBC Driver (required for database connectivity)
+
+### Installing SQL Server ODBC Driver
+
+#### Linux
+```bash
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+sudo apt-get update
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
+```
+
+#### Windows
+Download and install the [Microsoft ODBC Driver for SQL Server](https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+
+#### macOS
+```bash
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+brew install msodbcsql17 mssql-tools
+```
 
 ### Local Development
 
@@ -31,7 +52,7 @@ A cross-platform application for managing shipping operations, built with PyQt5 
    pip install -r requirements.txt
    ```
 
-3. Start the MySQL database using Docker:
+3. Start the SQL Server using Docker:
    ```bash
    docker-compose up -d
    ```
@@ -83,19 +104,19 @@ The application can be configured using environment variables or a `.env` file.
 
 ### Database Configuration
 
-#### Development (Docker/MySQL)
-- `DEV_MYSQL_USER`: MySQL username (default: root)
-- `DEV_MYSQL_PASSWORD`: MySQL password (default: root_password)
-- `DEV_MYSQL_HOST`: MySQL host (default: localhost)
-- `DEV_MYSQL_PORT`: MySQL port (default: 3306)
-- `DEV_MYSQL_DB`: MySQL database name (default: shipping_db)
+#### Development (Docker/SQL Server)
+- `DEV_SQL_SERVER`: SQL Server host (default: localhost)
+- `DEV_SQL_PORT`: SQL Server port (default: 1433)
+- `DEV_SQL_DB`: Database name (default: shipping_db)
+- `DEV_SQL_USER`: SQL Server username (default: sa)
+- `DEV_SQL_PASSWORD`: SQL Server password (default: YourStrong@Passw0rd)
 
 #### Production (Remote Server)
-- `PROD_MYSQL_USER`: MySQL username (default: shipping_user)
-- `PROD_MYSQL_PASSWORD`: MySQL password (default: shipping_password)
-- `PROD_MYSQL_HOST`: MySQL host (default: db.example.com)
-- `PROD_MYSQL_PORT`: MySQL port (default: 3306)
-- `PROD_MYSQL_DB`: MySQL database name (default: shipping_db)
+- `PROD_SQL_SERVER`: SQL Server host (default: db.example.com)
+- `PROD_SQL_PORT`: SQL Server port (default: 1433)
+- `PROD_SQL_DB`: Database name (default: shipping_db)
+- `PROD_SQL_USER`: SQL Server username (default: sa)
+- `PROD_SQL_PASSWORD`: SQL Server password (default: YourStrong@Passw0rd)
 
 ## License
 

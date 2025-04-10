@@ -1,12 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
 
 class ItemBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
+    name: str = Field(..., max_length=255)
+    description: Optional[str] = Field(None, max_length=1000)
+    price: float = Field(..., ge=0)
 
 
 class ItemCreate(ItemBase):
@@ -14,8 +14,8 @@ class ItemCreate(ItemBase):
 
 
 class ItemUpdate(ItemBase):
-    name: Optional[str] = None
-    price: Optional[float] = None
+    name: Optional[str] = Field(None, max_length=255)
+    price: Optional[float] = Field(None, ge=0)
 
 
 class ItemInDBBase(ItemBase):
@@ -25,6 +25,9 @@ class ItemInDBBase(ItemBase):
 
     class Config:
         orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 
 class Item(ItemInDBBase):

@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 import os
 from typing import Optional
+import urllib.parse
 
 
 class Settings(BaseSettings):
@@ -12,31 +13,51 @@ class Settings(BaseSettings):
     ENV: str = os.getenv("ENV", "development")  # development or production
     
     # Database settings
-    # Development settings (Docker/MySQL)
-    DEV_MYSQL_USER: str = os.getenv("DEV_MYSQL_USER", "shipping_user")
-    DEV_MYSQL_PASSWORD: str = os.getenv("DEV_MYSQL_PASSWORD", "shipping_password")
-    DEV_MYSQL_HOST: str = os.getenv("DEV_MYSQL_HOST", "localhost")
-    DEV_MYSQL_PORT: str = os.getenv("DEV_MYSQL_PORT", "3306")
-    DEV_MYSQL_DB: str = os.getenv("DEV_MYSQL_DB", "shipping_db")
+    # Development settings (Docker/SQL Server)
+    DEV_SQL_SERVER: str = os.getenv("DEV_SQL_SERVER", "localhost")
+    DEV_SQL_PORT: str = os.getenv("DEV_SQL_PORT", "1433")
+    DEV_SQL_DB: str = os.getenv("DEV_SQL_DB", "shipping_db")
+    DEV_SQL_USER: str = os.getenv("DEV_SQL_USER", "sa")
+    DEV_SQL_PASSWORD: str = os.getenv("DEV_SQL_PASSWORD", "YourStrong@Passw0rd")
     
     # Production settings (Remote server)
-    PROD_MYSQL_USER: str = os.getenv("PROD_MYSQL_USER", "shipping_user")
-    PROD_MYSQL_PASSWORD: str = os.getenv("PROD_MYSQL_PASSWORD", "shipping_password")
-    PROD_MYSQL_HOST: str = os.getenv("PROD_MYSQL_HOST", "db.example.com")
-    PROD_MYSQL_PORT: str = os.getenv("PROD_MYSQL_PORT", "3306")
-    PROD_MYSQL_DB: str = os.getenv("PROD_MYSQL_DB", "shipping_db")
+    PROD_SQL_SERVER: str = os.getenv("PROD_SQL_SERVER", "db.example.com")
+    PROD_SQL_PORT: str = os.getenv("PROD_SQL_PORT", "1433")
+    PROD_SQL_DB: str = os.getenv("PROD_SQL_DB", "shipping_db")
+    PROD_SQL_USER: str = os.getenv("PROD_SQL_USER", "sa")
+    PROD_SQL_PASSWORD: str = os.getenv("PROD_SQL_PASSWORD", "YourStrong@Passw0rd")
     
     DATABASE_URL: Optional[str] = None
     
     def __init__(self, **data):
         super().__init__(**data)
-        if self.ENV == "development":
-            print(f"mysql+pymysql://{self.DEV_MYSQL_USER}:{self.DEV_MYSQL_PASSWORD}@{self.DEV_MYSQL_HOST}:{self.DEV_MYSQL_PORT}/{self.DEV_MYSQL_DB}")
-            # Use development database settings
-            self.DATABASE_URL = f"mysql+pymysql://{self.DEV_MYSQL_USER}:{self.DEV_MYSQL_PASSWORD}@{self.DEV_MYSQL_HOST}:{self.DEV_MYSQL_PORT}/{self.DEV_MYSQL_DB}"
-        else:
-            # Use production database settings
-            self.DATABASE_URL = f"mysql+pymysql://{self.PROD_MYSQL_USER}:{self.PROD_MYSQL_PASSWORD}@{self.PROD_MYSQL_HOST}:{self.PROD_MYSQL_PORT}/{self.PROD_MYSQL_DB}"
+        
+        # Get the appropriate settings based on environment
+        sql_server = self.DEV_SQL_SERVER if self.ENV == "development" else self.PROD_SQL_SERVER
+        sql_port = self.DEV_SQL_PORT if self.ENV == "development" else self.PROD_SQL_PORT
+        sql_db = self.DEV_SQL_DB if self.ENV == "development" else self.PROD_SQL_DB
+        sql_user = self.DEV_SQL_USER if self.ENV == "development" else self.PROD_SQL_USER
+        sql_password = self.DEV_SQL_PASSWORD if self.ENV == "development" else self.PROD_SQL_PASSWORD
+
+        # URL encode the password to handle special characters
+        encoded_password = urllib.parse.quote_plus(sql_password)
+        
+        # Create SQLAlchemy connection URL with proper ODBC configuration
+        self.DATABASE_URL = (
+            "mssql+pyodbc://"
+            f"{sql_user}:{encoded_password}@"
+            f"{sql_server}:{sql_port}/{sql_db}"
+            "?driver=ODBC+Driver+17+for+SQL+Server"
+            "&TrustServerCertificate=yes"
+            "&Encrypt=no"
+            "&timeout=60"
+            "&connection_timeout=60"
+            "&query_timeout=60"
+            "&pool_timeout=60"
+            "&max_pool_size=20"
+            "&min_pool_size=5"
+            "&pool_pre_ping=true"
+        )
 
     class Config:
         case_sensitive = True
