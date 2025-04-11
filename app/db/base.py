@@ -182,8 +182,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create base class for declarative models
 Base = declarative_base()
 
-# Import all models here
-from app.models.item import Item  # noqa
+# Import all models here for SQLAlchemy to discover them
+from app.models.picking import FujiTradingPickingManagement, PickingDetail, PickingWork
 
 # Dependency
 def get_db():
