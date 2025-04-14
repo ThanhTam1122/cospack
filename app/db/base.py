@@ -183,7 +183,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Import all models here for SQLAlchemy to discover them
-from app.models.picking import FujiTradingPickingManagement, PickingDetail, PickingWork
+from app.models.picking import PickingManagement, PickingDetail, PickingWork
+from app.models.personal import Personal
+from app.models.customer import Customer
 
 # Dependency
 def get_db():

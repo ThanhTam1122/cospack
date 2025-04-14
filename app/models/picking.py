@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import text
 from app.db.base import Base
 import uuid
 
-class FujiTradingPickingManagement(Base):
+class PickingManagement(Base):
     """
     Represents the HAN99CA11PICKING table for Fuji Trading Picking Management
     """
@@ -25,8 +25,10 @@ class FujiTradingPickingManagement(Base):
                        default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
     
     # Relationships
-    picking_details = relationship("PickingDetail", back_populates="picking_header", cascade="all, delete-orphan")
-    picking_works = relationship("PickingWork", back_populates="picking_header", cascade="all, delete-orphan")
+    # picking_details = relationship("PickingDetail", back_populates="picking_header", cascade="all, delete-orphan", 
+    #                              foreign_keys="PickingDetail.HANC016001")
+
+    # picking_works = relationship("PickingWork", back_populates="picking_header", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<HAN99CA11PICKING {self.HANCA11001}>"
@@ -38,7 +40,6 @@ class PickingDetail(Base):
     """
     __tablename__ = "HAN10C016PICKING"
     
-    # Primary key and identification columns
     HANC016001 = Column("HANC016001", DECIMAL, primary_key=True, nullable=False, default=0)
     HANC016002 = Column("HANC016002", DECIMAL, nullable=False, default=0)
     HANC016003 = Column("HANC016003", DECIMAL, nullable=False, default=0)
@@ -46,7 +47,6 @@ class PickingDetail(Base):
     HANC016005 = Column("HANC016005", DECIMAL, nullable=False, default=0)
     HANC016006 = Column("HANC016006", DECIMAL, nullable=False, default=0)
     
-    # String data columns
     HANC016007 = Column("HANC016007", CHAR(11), nullable=False, default='')
     HANC016008 = Column("HANC016008", CHAR(11), nullable=False, default='')
     HANC016009 = Column("HANC016009", CHAR(8), nullable=False, default='')
@@ -54,26 +54,23 @@ class PickingDetail(Base):
     HANC016011 = Column("HANC016011", CHAR(4), nullable=False, default='')
     HANC016012 = Column("HANC016012", CHAR(4), nullable=False, default='')
     
-    # Numeric data columns
     HANC016013 = Column("HANC016013", DECIMAL, nullable=False, default=0)
+    # Shipping date Date and time (出荷日付)
     HANC016014 = Column("HANC016014", DECIMAL, nullable=False, default=0)
     HANC016015 = Column("HANC016015", DECIMAL, nullable=False, default=0)
     HANC016016 = Column("HANC016016", DECIMAL, nullable=False, default=0)
     HANC016017 = Column("HANC016017", DECIMAL, nullable=False, default=0)
     HANC016018 = Column("HANC016018", DECIMAL, nullable=False, default=0)
     
-    # Additional string fields
     HANC016019 = Column("HANC016019", CHAR(4), nullable=False, default='')
     HANC016020 = Column("HANC016020", CHAR(25), nullable=False, default='')
     HANC016021 = Column("HANC016021", CHAR(25), nullable=False, default='')
     HANC016022 = Column("HANC016022", CHAR(25), nullable=False, default='')
     HANC016023 = Column("HANC016023", CHAR(25), nullable=False, default='')
     
-    # More numeric fields
     HANC016024 = Column("HANC016024", DECIMAL, nullable=False, default=0)
     HANC016025 = Column("HANC016025", DECIMAL, nullable=False, default=0)
     
-    # Additional fields for relationships
     HANC016A001 = Column("HANC016A001", DECIMAL, nullable=False, default=0)
     HANC016A002 = Column("HANC016A002", DECIMAL, nullable=False, default=0)
     HANC016A003 = Column("HANC016A003", CHAR(11), nullable=False, default='')
@@ -83,15 +80,17 @@ class PickingDetail(Base):
     HANC016A007 = Column("HANC016A007", DECIMAL, nullable=False, default=0)
     HANC016A008 = Column("HANC016A008", DECIMAL, nullable=False, default=0)
     
-    # Tracking and system fields
     HANC016999 = Column("HANC016999", DECIMAL, nullable=False, default=0)
     HANC016INS = Column("HANC016INS", DECIMAL(20, 6), nullable=False, 
                        default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
     HANC016UPD = Column("HANC016UPD", DECIMAL(20, 6), nullable=False,
                        default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
     
-    # Relationship to header
-    picking_header = relationship("FujiTradingPickingManagement", back_populates="picking_details")
+    # Relationships
+    # picking_header = relationship("PickingManagement", back_populates="picking_details", 
+    #                             foreign_keys=[HANC016001])
+    # customer_from = relationship("Customer", foreign_keys=[HANC016007])
+    # staff = relationship("Personal", foreign_keys=[HANC016009])
 
     def __repr__(self):
         return f"<HAN10C016PICKING {self.HANC016001}>"
@@ -348,7 +347,7 @@ class PickingWork(Base):
     HANW002A012 = Column("HANW002A012", DECIMAL, nullable=False, default=0)
     
     # Relationship to header
-    picking_header = relationship("FujiTradingPickingManagement", back_populates="picking_works")
+    # picking_header = relationship("PickingManagement", back_populates="picking_works")
 
     def __repr__(self):
         return f"<HAN10W002PICKINGW {self.HANW002001}-{self.HANW002002}-{self.HANW002003}-{self.HANW002078}>" 
