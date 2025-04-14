@@ -5,9 +5,9 @@ from datetime import datetime
 class PickingRead(BaseModel):
     """Schema for reading picking data with required fields for UI table"""
     picking_id: int  # ピッキング連番
-    picking_date: datetime  # ピッキング日
-    picking_time: datetime  # ピッキング時刻
-    shipping_date: datetime  # 出荷日付
+    picking_date: int  # ピッキング日
+    picking_time: int  # ピッキング時刻
+    shipping_date: int  # 出荷日付
     order_no_from: str  # 受注No_From
     order_no_to: str  # 受注No_To
     customer_code_from: str  # 得意先CD_From

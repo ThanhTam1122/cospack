@@ -209,8 +209,8 @@ class MainWindow(QMainWindow):
 
             self.table.setItem(row, 1, QTableWidgetItem(str(item.get("picking_id", ""))))
             self.table.setItem(row, 2, QTableWidgetItem(str(item.get("picking_date", ""))))
-            self.table.setItem(row, 3, QTableWidgetItem(item.get("picking_time", "")))
-            self.table.setItem(row, 4, QTableWidgetItem(item.get("shipping_date", "")))
+            self.table.setItem(row, 3, QTableWidgetItem(str(item.get("picking_time", ""))))
+            self.table.setItem(row, 4, QTableWidgetItem(str(item.get("shipping_date", ""))))
             self.table.setItem(row, 5, QTableWidgetItem(str(item.get("order_no_from", ""))))
             self.table.setItem(row, 6, QTableWidgetItem(str(item.get("order_no_to", ""))))
             self.table.setItem(row, 7, QTableWidgetItem(str(item.get("customer_code_from", ""))))

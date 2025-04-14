@@ -40,9 +40,12 @@ def get_pickings(
             Customer.HANM001006.label("customer_short_name"),
             Personal.HANM004003.label("staff_short_name")
         )
+        .join(PickingManagement, PickingDetail.HANC016001 == PickingManagement.HANCA11001)
         .join(PickingWork, PickingDetail.HANC016001 == PickingWork.HANW002009)
         .outerjoin(Customer, PickingDetail.HANC016A003 == Customer.HANM001003)
         .outerjoin(Personal, PickingWork.HANW002014 == Personal.HANM004001)
+        .filter(PickingManagement.HANCA11002 == "1")
+        .filter(PickingWork.HANW002003 == "1")
     )
     
     # # Apply filters if provided
