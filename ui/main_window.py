@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         # Search bar
         search_layout = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Enter search term...")
+        self.search_edit.setPlaceholderText("検索語を入力してください...")
         self.search_edit.setStyleSheet("font-size: 16px; padding: 7px; border-radius: 5px; border: 1px solid #ccc;")
         self.search_button = QPushButton("検 索")
         self.search_button.setStyleSheet("QPushButton { background-color: #115181;color: white;border-radius: 5px;padding: 8px; font-size: 16px;font-weight: bold;border: none; min-width: 100px;}QPushButton:hover {    background-color: #1c5c8e;}QPushButton:pressed {    background-color: #2c699a;}")
@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["","Id", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
         self.table.horizontalHeader().setSectionResizeMode(12, QHeaderView.Stretch)
         self.table.setColumnWidth(0, 20)  # First column (checkbox)
+        self.table.setColumnHidden(1, True)
         self.table.setStyleSheet("QHeaderView::section { padding: 8px; padding-left: 10px; font-size: 14px;}")
         self.table.clicked.connect(self.on_row_click)
 
@@ -161,9 +162,9 @@ class MainWindow(QMainWindow):
         # Bottom Bar
         bottom_layout = QHBoxLayout()
         
-        self.total_records = QLabel("Total Records: 0")
+        self.total_records = QLabel("全件数: 0")
         self.total_records.setStyleSheet("font-size: 16px; padding: 7px;")
-        self.selected_records = QLabel("Selected Records: 0")
+        self.selected_records = QLabel("選択件数: 0")
         self.selected_records.setStyleSheet("font-size: 16px; padding: 7px;")
         bottom_layout.addWidget(self.total_records)
         bottom_layout.addWidget(self.selected_records)
@@ -172,13 +173,14 @@ class MainWindow(QMainWindow):
         h_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         bottom_layout.addSpacerItem(h_spacer)
 
-        self.add_button = QPushButton("運送会社")
-        self.add_button.setStyleSheet("QPushButton { background-color: #3498db;color: white;border-radius: 5px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #2980b9;}QPushButton:pressed {    background-color: #1c598a;}")
-        bottom_layout.addWidget(self.add_button)
+        self.shipping_btn = QPushButton("運送会社")
+        self.shipping_btn.setStyleSheet("QPushButton { background-color: #3498db;color: white;border-radius: 5px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #2980b9;}QPushButton:pressed {    background-color: #1c598a;}")
+        bottom_layout.addWidget(self.shipping_btn)
         
-        self.refresh_button = QPushButton("退出")
-        self.refresh_button.setStyleSheet("QPushButton { background-color: #e74c3c;;color: white;border-radius: 5px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #c0392b;}QPushButton:pressed {    background-color: #a93226;}")
-        bottom_layout.addWidget(self.refresh_button)
+        self.exit_btn = QPushButton("退出")
+        self.exit_btn.setStyleSheet("QPushButton { background-color: #e74c3c;;color: white;border-radius: 5px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #c0392b;}QPushButton:pressed {    background-color: #a93226;}")
+        self.exit_btn.clicked.connect(QApplication.quit)
+        bottom_layout.addWidget(self.exit_btn)
         
         main_layout.addLayout(bottom_layout)
     
@@ -190,7 +192,7 @@ class MainWindow(QMainWindow):
     
     def update_table(self, items):
         self.table.setRowCount(0)
-        self.total_records.setText(f"Total Records: {len(items)}")
+        self.total_records.setText(f"全件数: {len(items)}")
         for row, item in enumerate(items):
             self.table.insertRow(row)
             
@@ -216,7 +218,8 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 9, QTableWidgetItem(str(item.get("customer_short_name", ""))))
             self.table.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.table.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
-            
+            self.table.setItem(row, 12, QTableWidgetItem(""))
+
     
     def on_checkbox_clicked(self, item):
         self.update_selected_row_count()
@@ -232,14 +235,25 @@ class MainWindow(QMainWindow):
 
     def toggle_select_all(self, state):
         if state == Qt.Checked:
-            self.selected_records.setText(f"Selected Records: {self.table.rowCount()}")
+            self.selected_records.setText(f"選択件数: {self.table.rowCount()}")
         else:
-            self.selected_records.setText("Selected Records: 0")
+            self.selected_records.setText("選択件数: 0")
 
         for row in range(self.table.rowCount()):
             item = self.table.cellWidget(row, 0).findChild(QCheckBox)
             if item:
                 item.setCheckState(state)
+            if state == Qt.Checked:
+                for i in range(self.table.columnCount()):
+                    item = self.table.item(row, i)
+                    if item:
+                        item.setSelected(True)
+            else:
+                for i in range(self.table.columnCount()):
+                    item = self.table.item(row, i)
+                    if item:
+                        item.setSelected(False)
+        
 
     def update_selected_row_count (self):
         selected_count = 0
@@ -256,11 +270,10 @@ class MainWindow(QMainWindow):
                     item = self.table.item(row, i)
                     if item:
                         item.setSelected(False)
-        self.selected_records.setText(f"Selected Records: {selected_count}")
+        self.selected_records.setText(f"選択件数: {selected_count}")
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
-
 
 def main():
     app = QApplication(sys.argv)
