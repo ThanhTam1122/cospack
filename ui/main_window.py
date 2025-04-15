@@ -3,13 +3,13 @@ import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,QAbstractButton,
-    QLabel, QLineEdit, QFormLayout, QMessageBox, QHeaderView,QAbstractItemView,
-    QDialog, QDialogButtonBox, QSpacerItem, QSizePolicy, QStyledItemDelegate, QStyle, QStyleOptionButton, QCheckBox
+    QLabel, QLineEdit, QMessageBox, QHeaderView,QAbstractItemView,
+    QSpacerItem, QSizePolicy, QCheckBox
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QRect, QEvent
-from PyQt5.QtGui import QPainter
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
+from PyQt5.QtGui import QMovie
 import requests
-import json
+import time
 
 class ApiClient:
     """Client to interact with the FastAPI backend"""
@@ -24,11 +24,21 @@ class ApiClient:
             print("======== API Get Pickings ==========")
             response = requests.get(f"{self.base_url}/pickings/")
             response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+            time.sleep(1)
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")
             return []  # Return an empty list or handle the error as needed
-        
+    def shipping(self):
+        try:
+            response = requests.get(f"{self.base_url}/pickings/")
+            response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+            print("======== API Get Shipping ==========")
+            time.sleep(2)
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching items: {e}")
+            return []
 class DataFetcherThread(QThread):
     """Thread for fetching data from API"""
     data_fetched = pyqtSignal(list)
@@ -38,7 +48,6 @@ class DataFetcherThread(QThread):
         print("======== Init DataFetch Thread ========")
         super().__init__()
         self.api_client = api_client
-    
     def run(self):
         try:
             resp = self.api_client.get_pickings()
@@ -48,54 +57,57 @@ class DataFetcherThread(QThread):
                 self.data_fetched.emit([])
         except Exception as e:
             self.error_occurred.emit(str(e))
-
-class ItemDialog(QDialog):
-
-    """Dialog for creating/editing items"""
+class ShippingThread(QThread):
+    """Thread for fetching data from API"""
+    data_fetched = pyqtSignal(list)
+    error_occurred = pyqtSignal(str)
     
-    def __init__(self, parent=None, item=None):
+    def __init__(self, api_client):
+        print("======== Init Shipping Thread ========")
+        super().__init__()
+        self.api_client = api_client
+    def run(self):
+        try:
+            resp = self.api_client.shipping()
+            if "pickings" in resp:
+                self.data_fetched.emit(resp["pickings"])
+            else:
+                self.data_fetched.emit([])
+        except Exception as e:
+            self.error_occurred.emit(str(e))
+
+class SpinnerOverlay(QWidget):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.item = item
-        self.init_ui()
-    
-    def init_ui(self):
-        self.setWindowTitle("Add Item" if not self.item else "Edit Item")
-        self.setMinimumWidth(300)
-        
-        layout = QFormLayout(self)
-        
-        # Create form fields
-        self.name_edit = QLineEdit(self)
-        self.description_edit = QLineEdit(self)
-        self.price_edit = QLineEdit(self)
-        
-        # Fill fields if editing
-        if self.item:
-            self.name_edit.setText(self.item.get("name", ""))
-            self.description_edit.setText(self.item.get("description", ""))
-            self.price_edit.setText(str(self.item.get("price", "")))
-        
-        # Add fields to layout
-        layout.addRow("Name:", self.name_edit)
-        layout.addRow("Description:", self.description_edit)
-        layout.addRow("Price:", self.price_edit)
-        
-        # Add buttons
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            Qt.Horizontal, self
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)
-    
-    def get_item_data(self):
-        return {
-            "name": self.name_edit.text(),
-            "description": self.description_edit.text(),
-            "price": float(self.price_edit.text() or 0)
-        }
+        self.setParent(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)  # <== Important!
+        self.setAttribute(Qt.WA_NoSystemBackground, False)
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 25);")
+        self.setWindowFlags(Qt.Widget | Qt.FramelessWindowHint)
+        self.setGeometry(parent.rect())
 
+        self.spinner_label = QLabel(self)
+        self.spinner_label.setGeometry(parent.rect())
+        gif_path = os.path.abspath("./ui/spinner.gif")
+        self.movie = QMovie(gif_path)
+
+        self.movie.setSpeed(100)
+        self.movie.setScaledSize(QSize(50, 50))
+
+        self.spinner_label.setMovie(self.movie)
+        self.spinner_label.setAlignment(Qt.AlignCenter)
+
+        self.hide()
+
+    def start(self):
+        self.setGeometry(self.parent().rect())
+        self.movie.start()
+        self.show()
+
+    def stop(self):
+        self.movie.stop()
+        self.hide()
 class MainWindow(QMainWindow):
     """Main application window"""
     
@@ -175,6 +187,7 @@ class MainWindow(QMainWindow):
 
         self.shipping_btn = QPushButton("運送会社")
         self.shipping_btn.setStyleSheet("QPushButton { background-color: #3498db;color: white;border-radius: 5px;padding: 8px;font-size: 16px;font-weight: bold;border: none; min-width: 120px;}QPushButton:hover {    background-color: #2980b9;}QPushButton:pressed {    background-color: #1c598a;}")
+        self.shipping_btn.clicked.connect(self.shipping)
         bottom_layout.addWidget(self.shipping_btn)
         
         self.exit_btn = QPushButton("退出")
@@ -183,8 +196,11 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(self.exit_btn)
         
         main_layout.addLayout(bottom_layout)
+
+        self.spinner = SpinnerOverlay(self)
     
     def load_data(self):
+        self.spinner.start()
         self.data_thread = DataFetcherThread(self.api_client)
         self.data_thread.data_fetched.connect(self.update_table)
         self.data_thread.error_occurred.connect(self.show_error)
@@ -219,8 +235,16 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.table.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
             self.table.setItem(row, 12, QTableWidgetItem(""))
+        self.spinner.stop()
 
-    
+    def shipping (self):
+        print("======== Shipping Button Clicked ========")
+        self.spinner.start()
+        self.data_thread = ShippingThread(self.api_client)
+        self.data_thread.data_fetched.connect(lambda data: self.show_message(f"運送会社データが正常に取得されました。件数: {len(data)}"))
+        self.data_thread.error_occurred.connect(self.show_error)
+        self.data_thread.start()
+
     def on_checkbox_clicked(self, item):
         self.update_selected_row_count()
 
@@ -253,7 +277,6 @@ class MainWindow(QMainWindow):
                     item = self.table.item(row, i)
                     if item:
                         item.setSelected(False)
-        
 
     def update_selected_row_count (self):
         selected_count = 0
@@ -272,7 +295,34 @@ class MainWindow(QMainWindow):
                         item.setSelected(False)
         self.selected_records.setText(f"選択件数: {selected_count}")
 
+    def show_message(self, message):
+        self.spinner.stop()
+        
+        msg = QMessageBox(self)
+        msg.setText(message)
+        msg.setWindowTitle("運送会社")
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: white;
+                color: white;
+                font-family: Arial;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #3c8dbc;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #559ed5;
+            }
+        """)
+        msg.exec_()
+        self.spinner.stop()
+
     def show_error(self, message):
+        self.spinner.stop()
         QMessageBox.critical(self, "Error", message)
 
 def main():
@@ -280,7 +330,6 @@ def main():
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
 
 if __name__ == "__main__":
     main() 
