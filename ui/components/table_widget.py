@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import ( QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QWidget, QHBoxLayout, QVBoxLayout )
+from PySide6.QtWidgets import ( QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QWidget, QHBoxLayout )
 from PySide6.QtCore import Qt, QRect, Signal
 
 class TableWidget(QTableWidget):
@@ -62,7 +62,8 @@ class TableWidget(QTableWidget):
             self.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
             self.setItem(row, 12, QTableWidgetItem(""))
-
+            self.setFrameShadow(QTableWidget.Plain)
+            
     def on_checkbox_clicked(self, item):
         self.update_selected_row_count()
 

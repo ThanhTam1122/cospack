@@ -27,3 +27,5 @@ class SearchBar(QWidget):
     
     def on_search_button_clicked(self):
         self.on_search.emit(self.search_edit.text())
+    def get_text(self):
+        return self.search_edit.text()

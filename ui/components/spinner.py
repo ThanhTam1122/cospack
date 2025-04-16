@@ -16,7 +16,7 @@ class Spinner(QWidget):
 
         self.spinner_label = QLabel(self)
         self.spinner_label.setGeometry(parent.rect())
-        gif_path = os.path.abspath("./ui/spinner.gif")
+        gif_path = os.path.abspath("./ui/assets/spinner.gif")
         self.movie = QMovie(gif_path)
 
         self.movie.setSpeed(100)

@@ -68,3 +68,9 @@ class Pagination(QWidget):
         self.page_size = int(value)
         self.current_page = 0
         self.update_page()
+
+    def get_current_page(self):
+        return self.current_page
+    
+    def get_page_size(self):
+        return self.page_size

@@ -9,80 +9,18 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QThread, Signal
 
-from ui.search_bar import SearchBar
-from ui.table_widget import TableWidget
-from ui.pagination import Pagination
-from ui.spinner import Spinner
-
-class ApiClient:
-    def __init__(self, base_url=None):
-        self.base_url = base_url or os.environ.get("BACKEND_URL", "http://localhost:8000/api")
-        print(f"======== Connecting to backend at: {self.base_url} ==========")
-
-    def get_pickings(self):
-        try:
-            print("======== API Get Pickings ==========")
-            response = requests.get(f"{self.base_url}/pickings/")
-            response.raise_for_status()
-            time.sleep(2)
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching items: {e}")
-            return []
-
-    def shipping(self):
-        try:
-            response = requests.get(f"{self.base_url}/pickings/")
-            response.raise_for_status()
-            time.sleep(3)
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching items: {e}")
-            return []
-
-class DataFetcherThread(QThread):
-    data_fetched = Signal(list)
-    error_occurred = Signal(str)
-
-    def __init__(self, api_client):
-        print("======== Init DataFetch Thread ========")
-        super().__init__()
-        self.api_client = api_client
-
-    def run(self):
-        try:
-            resp = self.api_client.get_pickings()
-            if "pickings" in resp:
-                self.data_fetched.emit(resp["pickings"])
-            else:
-                self.data_fetched.emit([])
-        except Exception as e:
-            self.error_occurred.emit(str(e))
-
-class ShippingThread(QThread):
-    data_fetched = Signal(list)
-    error_occurred = Signal(str)
-
-    def __init__(self, api_client):
-        super().__init__()
-        self.api_client = api_client
-
-    def run(self):
-        try:
-            resp = self.api_client.shipping()
-            if "pickings" in resp:
-                self.data_fetched.emit(resp["pickings"])
-            else:
-                self.data_fetched.emit([])
-        except Exception as e:
-            self.error_occurred.emit(str(e))
-
+from ui.components.search_bar import SearchBar
+from ui.components.table_widget import TableWidget
+from ui.components.pagination import Pagination
+from ui.components.spinner import Spinner
+from ui.api.api_client import ApiClient
+from ui.api.data_fetcher_thread import DataFetcherThread
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.init_ui()
         self.api_client = ApiClient()
-        # self.load_data()
+        # self.get_pickings()
 
     def init_ui(self):
         
@@ -99,7 +37,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(title_label)
 
         self.search_bar = SearchBar()
-        self.search_bar.on_search.connect(lambda search_text: self.load_data())
+        self.search_bar.on_search.connect(lambda search_text: self.get_pickings())
         main_layout.addWidget(self.search_bar)
 
         self.table = TableWidget()
@@ -107,12 +45,10 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.table)
 
         bottom_layout = QHBoxLayout()
-        self.pagenation = Pagination()
-        bottom_layout.addWidget(self.pagenation)
+        self.pagination = Pagination()
+        bottom_layout.addWidget(self.pagination)
 
-        self.total_records = QLabel("全件数: 0")
-        self.selected_records = QLabel("選択件数: 0")
-        bottom_layout.addWidget(self.total_records)
+        self.selected_records = QLabel("0 / 0")
         bottom_layout.addWidget(self.selected_records)
 
         bottom_layout.addStretch()
@@ -129,16 +65,20 @@ class MainWindow(QMainWindow):
 
         self.spinner = Spinner(self)
 
-    def load_data(self):
+    def get_pickings(self):
         self.spinner.start()
-        self.data_thread = DataFetcherThread(self.api_client)
+        self.data_thread = DataFetcherThread(self.api_client, "get-pickings", {
+            "search_text": self.search_bar.get_text(),
+            "page_size": self.pagination.get_page_size(),
+            "current_page": self.pagination.get_current_page()
+        })
         self.data_thread.data_fetched.connect(self.update_table)
         self.data_thread.error_occurred.connect(self.show_error)
         self.data_thread.start()
 
     def do_shipping(self):
         self.spinner.start()
-        self.shipping_thread = ShippingThread(self.api_client)
+        self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {})
         self.shipping_thread.data_fetched.connect(lambda data: self.show_message("運送会社のデータを取得しました"))
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
@@ -149,8 +89,7 @@ class MainWindow(QMainWindow):
         self.spinner.stop()
 
     def update_selection(self, row_count, selected_count):
-        self.selected_records.setText(f"選択件数: {selected_count}")
-        self.total_records.setText(f"全件数: {row_count}")
+        self.selected_records.setText(f" {row_count} / {selected_count}")
 
     def show_message(self, message):
         self.spinner.stop()
