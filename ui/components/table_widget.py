@@ -48,6 +48,8 @@ class TableWidget(QTableWidget):
     def update_table(self, items):
         self.row_count = len(items)
         self.selection_updated.emit(self.row_count, self.selected_count)
+
+        self.setRowCount(0)
         for row, item in enumerate(items):
             self.insertRow(row)
             

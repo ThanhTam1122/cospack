@@ -1,4 +1,5 @@
 import sys
+import json
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox)
 from PySide6.QtCore import Qt
@@ -66,11 +67,11 @@ class MainWindow(QMainWindow):
     def get_pickings(self):
         self.spinner.start()
         self.data_thread = DataFetcherThread(self.api_client, "get-pickings", {
-            "search_text": self.search_bar.get_text(),
-            "page_size": self.pagination.get_page_size(),
-            "current_page": self.pagination.get_current_page()
+            "query": self.search_bar.get_text(),
+            "skip": self.pagination.get_page_size() * (self.pagination.get_current_page() - 1),
+            "limit": self.pagination.get_page_size()
         })
-        self.data_thread.data_fetched.connect(self.update_table)
+        self.data_thread.data_fetched.connect(lambda resp: self.update_table(resp))
         self.data_thread.error_occurred.connect(self.show_error)
         self.data_thread.start()
 
@@ -81,9 +82,10 @@ class MainWindow(QMainWindow):
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
 
-    def update_table(self, items):
-        self.table.setRowCount(0)
-        self.table.update_table(items)
+    def update_table(self, resp):
+        if "pickings" in resp:
+            self.table.update_table(resp["pickings"])
+            self.pagination.update_item_count(resp["total"])
         self.spinner.stop()
 
     def update_selection(self, row_count, selected_count):
