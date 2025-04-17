@@ -12,7 +12,7 @@ router = APIRouter()
 def read_pickings(
     skip: int = 0, 
     limit: int = 50,
-    query: Optional[int] = None,
+    query: Optional[str] = None,
     # shipping_date_from: Optional[str] = None,
     # shipping_date_to: Optional[str] = None,
     # customer_code: Optional[str] = None,
@@ -21,14 +21,9 @@ def read_pickings(
 ):
     """
     Retrieve pickings with pagination and optional filtering.
-    
     - **skip**: Number of records to skip (pagination)
     - **limit**: Number of records to return per page
-    - **picking_id**: Filter by picking ID
-    - **shipping_date_from**: Filter by shipping date >= (format: YYYYMMDD)
-    - **shipping_date_to**: Filter by shipping date <= (format: YYYYMMDD)
-    - **customer_code**: Filter by customer code
-    - **staff_code**: Filter by staff code
+    - **query**: Filter by query
     """
     filters = {}
     
@@ -46,9 +41,8 @@ def read_pickings(
     
     if query:
         filters["query"] = query
-    
     result = picking_service.get_pickings(db, skip=skip, limit=limit, filters=filters)
-    
+
     return {
         "pickings": result["pickings"],
         "total": result["total"],

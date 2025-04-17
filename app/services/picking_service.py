@@ -10,7 +10,7 @@ from app.models.personal import Personal
 def get_pickings(
     db: Session,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50,
     filters: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
