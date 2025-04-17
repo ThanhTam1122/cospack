@@ -9,9 +9,10 @@ class TransportationFee(Base):
     """
     __tablename__ = "HAN10M007UNSO_FEE"
 
-    HANM007001 = Column("HANM007001", Integer, primary_key=True, nullable=False)  # 運送会社コード
-    HANM007002 = Column("HANM007002", Integer, primary_key=True, nullable=False)  # 運送エリアコード
-    HANM007003 = Column("HANM007003", Integer, primary_key=True, nullable=True)   # 最大重量（kg）
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    HANM007001 = Column("HANM007001", Integer, nullable=False)  # 運送会社コード
+    HANM007002 = Column("HANM007002", Integer, nullable=False)  # 運送エリアコード
+    HANM007003 = Column("HANM007003", Integer, nullable=True)   # 最大重量（kg）
 
     HANM007004 = Column("HANM007004", Integer, nullable=True)   # 最大才数
     HANM007005 = Column("HANM007005", Integer, nullable=True)   # 最大サイズ（cm）
