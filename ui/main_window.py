@@ -1,26 +1,24 @@
 import sys
-import os
-import requests
-import time
 
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QMessageBox
-)
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox)
+from PySide6.QtCore import Qt
 
+# UI Components
 from ui.components.search_bar import SearchBar
 from ui.components.table_widget import TableWidget
 from ui.components.pagination import Pagination
 from ui.components.spinner import Spinner
+
+# Api Client
 from ui.api.api_client import ApiClient
 from ui.api.data_fetcher_thread import DataFetcherThread
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.init_ui()
         self.api_client = ApiClient()
-        # self.get_pickings()
+        self.get_pickings()
 
     def init_ui(self):
         
