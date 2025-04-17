@@ -16,14 +16,14 @@ class Settings(BaseSettings):
     # Development settings (Docker/SQL Server)
     DEV_SQL_SERVER: str = os.getenv("DEV_SQL_SERVER", "localhost")
     DEV_SQL_PORT: str = os.getenv("DEV_SQL_PORT", "1433")
-    DEV_SQL_DB: str = os.getenv("DEV_SQL_DB", "FuijSmileV")
+    DEV_SQL_DB: str = os.getenv("DEV_SQL_DB", "FujiSmileV")
     DEV_SQL_USER: str = os.getenv("DEV_SQL_USER", "sa")
     DEV_SQL_PASSWORD: str = os.getenv("DEV_SQL_PASSWORD", "YourStrong@Passw0rd")
     
     # Production settings (Remote server)
     PROD_SQL_SERVER: str = os.getenv("PROD_SQL_SERVER", "db.example.com")
     PROD_SQL_PORT: str = os.getenv("PROD_SQL_PORT", "1433")
-    PROD_SQL_DB: str = os.getenv("PROD_SQL_DB", "FuijSmileV")
+    PROD_SQL_DB: str = os.getenv("PROD_SQL_DB", "FujiSmileV")
     PROD_SQL_USER: str = os.getenv("PROD_SQL_USER", "sa")
     PROD_SQL_PASSWORD: str = os.getenv("PROD_SQL_PASSWORD", "YourStrong@Passw0rd")
     
