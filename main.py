@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
 Main entry point for the Shipping Application.
-This will run the PyQt UI, which connects to the FastAPI backend.
+This will run the PySide UI, which connects to the FastAPI backend.
 """
 
 import sys
 import os
-import subprocess
 import threading
 import time
 import argparse
