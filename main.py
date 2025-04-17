@@ -79,6 +79,7 @@ def main():
             sys.exit(1)
 
     # Import and start the UI
+    print("============= Starting UI =============")
     from ui.main_window import main as start_ui
     start_ui()
 
