@@ -15,19 +15,30 @@ class TableWidget(QTableWidget):
         self.setColumnCount(13)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QTableWidget.NoSelection)
-        self.setHorizontalHeaderLabels(["","Id", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
+        self.setHorizontalHeaderLabels(["","ID", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
         self.horizontalHeader().setSectionResizeMode(12, QHeaderView.Stretch)
+        self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(9, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(10, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(11, QHeaderView.ResizeToContents)
         self.setColumnWidth(0, 40)  # First column (checkbox)
         self.setColumnHidden(1, True)
-        self.setStyleSheet("QHeaderView::section { padding: 8px; padding-left: 10px; font-size: 14px;}")
+        self.setStyleSheet("QHeaderView::section { padding: 8px; font-size: 14px;}")
+        self.setSelectionBehavior(QTableWidget.SelectRows)
         self.clicked.connect(self.on_row_click)
 
         checkbox_all = QCheckBox()
         checkbox_all.setChecked(False)
         checkbox_all.stateChanged.connect(self.toggle_select_all)
-        widget = QWidget(self.horizontalHeader())
+        widget=QWidget(self.horizontalHeader())
         widget.setGeometry(QRect(0, 0, 38, 40))
-        layout = QHBoxLayout(widget)
+        layout=QHBoxLayout(widget)
         layout.setAlignment(Qt.AlignCenter)  # Center the checkbox
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(checkbox_all)
@@ -62,7 +73,6 @@ class TableWidget(QTableWidget):
             self.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
             self.setItem(row, 12, QTableWidgetItem(""))
-            self.setFrameShadow(QTableWidget.Plain)
             
     def on_checkbox_clicked(self, item):
         self.update_selected_row_count()
@@ -100,11 +110,12 @@ class TableWidget(QTableWidget):
                         item.setSelected(False)
 
     def update_selected_row_count (self):
-        selected_count = 0
+        self.selected_count = 0
         for row in range(self.rowCount()):
             checkbox = self.cellWidget(row, 0).findChild(QCheckBox)
+
             if checkbox and checkbox.isChecked():
-                selected_count += 1
+                self.selected_count += 1
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
@@ -114,7 +125,7 @@ class TableWidget(QTableWidget):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(False)
-        self.selected_count = selected_count
+
         self.selection_updated.emit(self.row_count, self.selected_count)
 
     def clear_table(self):
