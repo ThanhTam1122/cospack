@@ -48,7 +48,7 @@ def get_pickings(
         .filter(PickingWork.HANW002003 == "1")
     )
     
-    # # Apply filters if provided
+    # Apply filters if provided
     if filters:
         filter_conditions = []
         
@@ -58,7 +58,7 @@ def get_pickings(
         if filters.get("shipping_date_from") and filters.get("shipping_date_to"):
             filter_conditions.append(and_(
                 PickingDetail.HANC016014 >= filters["shipping_date_from"],
-                PickingDetail.HANC016014.HANC016024 <= filters["shipping_date_to"]
+                PickingDetail.HANC016014 <= filters["shipping_date_to"]
             ))
         elif filters.get("shipping_date_from"):
             filter_conditions.append(PickingDetail.HANC016014 >= filters["shipping_date_from"])
