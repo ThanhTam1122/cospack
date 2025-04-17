@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date
+from typing import Optional
 
 from app.db.base import get_db
-from app.schemas.picking import PickingRead, PickingList
+from app.schemas.picking import PickingList
 from app.services import picking_service
 
 router = APIRouter()
@@ -12,7 +11,7 @@ router = APIRouter()
 @router.get("/", response_model=PickingList)
 def read_pickings(
     skip: int = 0, 
-    limit: int = 100,
+    limit: int = 50,
     picking_id: Optional[int] = None,
     shipping_date_from: Optional[str] = None,
     shipping_date_to: Optional[str] = None,
