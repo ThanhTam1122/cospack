@@ -1,10 +1,10 @@
 # Shipping Application
 
-A cross-platform application for managing shipping operations, built with PyQt5 for the UI and FastAPI for the backend.
+A cross-platform application for managing shipping operations, built with PySide6 for the UI and FastAPI for the backend.
 
 ## Features
 
-- Modern PyQt5-based user interface
+- Modern PySide6-based user interface
 - FastAPI backend with automatic API documentation
 - SQL Server database support
 - Cross-platform compatibility (Windows, macOS, Linux)
@@ -91,7 +91,7 @@ The application can be built into a standalone executable using PyInstaller.
 - **Windows**: Double-click `run_shipping_app.bat` in the `dist` directory
 - **macOS/Linux**: Run `./run_shipping_app.sh` in the `dist` directory
 
-The executable contains both the PyQt UI and FastAPI backend, which will start automatically when you run the application.
+The executable contains both the PySide UI and FastAPI backend, which will start automatically when you run the application.
 
 ## Configuration
 
