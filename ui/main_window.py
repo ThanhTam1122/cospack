@@ -45,6 +45,8 @@ class MainWindow(QMainWindow):
 
         bottom_layout = QHBoxLayout()
         self.pagination = Pagination()
+        self.pagination.on_page_changed.connect(self.on_page_changed)
+        self.pagination.on_page_size_changed.connect(self.on_page_size_changed)
         bottom_layout.addWidget(self.pagination)
 
         self.selected_records = QLabel("0 / 0")
@@ -68,7 +70,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
         self.data_thread = DataFetcherThread(self.api_client, "get-pickings", {
             "query": self.search_bar.get_text(),
-            "skip": self.pagination.get_page_size() * (self.pagination.get_current_page() - 1),
+            "skip": self.pagination.get_page_size() * (self.pagination.get_current_page()),
             "limit": self.pagination.get_page_size()
         })
         self.data_thread.data_fetched.connect(lambda resp: self.update_table(resp))
@@ -84,7 +86,7 @@ class MainWindow(QMainWindow):
 
     def update_table(self, resp):
         if "pickings" in resp:
-            self.table.update_table(resp["pickings"])
+            self.table.update_table(resp["pickings"], resp["total"])
             self.pagination.update_item_count(resp["total"])
         self.spinner.stop()
 
@@ -119,6 +121,14 @@ class MainWindow(QMainWindow):
     def show_error(self, message):
         self.spinner.stop()
         QMessageBox.critical(self, "Error", message)
+
+    # Signals
+
+    def on_page_changed(self):
+        self.get_pickings()
+    
+    def on_page_size_changed(self):
+        self.get_pickings()
 
 def main():
     app = QApplication(sys.argv)

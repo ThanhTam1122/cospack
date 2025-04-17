@@ -45,8 +45,8 @@ class TableWidget(QTableWidget):
         widget.setLayout(layout)
         self.setCellWidget(0, 0, widget)
 
-    def update_table(self, items):
-        self.row_count = len(items)
+    def update_table(self, items, total_count):
+        self.row_count = total_count
         self.selection_updated.emit(self.row_count, self.selected_count)
 
         self.setRowCount(0)

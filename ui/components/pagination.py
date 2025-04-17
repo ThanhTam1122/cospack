@@ -4,15 +4,15 @@ from PySide6.QtCore import Qt, Signal
 
 class Pagination(QWidget):
 
-    on_page_size_changed = Signal(int)
-    on_page_changed = Signal(int)
+    on_page_size_changed = Signal()
+    on_page_changed = Signal()
 
     def __init__(self):
         super().__init__()
 
         self.item_count = 0
         self.current_page = 0
-        self.page_size = 5
+        self.page_size = 15
 
         self.init_ui()
         self.update_page()
@@ -25,7 +25,7 @@ class Pagination(QWidget):
         # Per-page ComboBox
         controls_layout.addWidget(QLabel("カウント:"))
         self.page_size_selector = QComboBox()
-        self.page_size_selector.addItems(["50", "100", "200"])
+        self.page_size_selector.addItems(["15", "25", "50"])
         self.page_size_selector.setCurrentText(str(self.page_size))
         self.page_size_selector.currentTextChanged.connect(self.change_page_size)
         controls_layout.addWidget(self.page_size_selector)
@@ -59,26 +59,25 @@ class Pagination(QWidget):
         # Clamp current page
         self.current_page = max(0, min(self.current_page, total_pages - 1))
 
-
         self.page_label.setText(f"{self.current_page + 1} / {total_pages}")
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page < total_pages - 1)
 
     def prev_page(self):
         self.current_page -= 1
-        self.update_page()
+        self.on_page_changed.emit()
 
     def next_page(self):
         self.current_page += 1
-        self.update_page()
+        self.on_page_changed.emit()
 
     def change_page_size(self, value):
         self.page_size = int(value)
         self.current_page = 0
-        self.update_page()
+        self.on_page_size_changed.emit()
 
     def get_current_page(self):
-        return max(1, self.current_page)
+        return self.current_page
     
     def get_page_size(self):
         return self.page_size

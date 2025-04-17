@@ -9,8 +9,8 @@ python-dotenv==1.0.0
 requests==2.31.0
 cryptography==42.0.2
 
-# PyQt UI
-PyQt5==5.15.9
+# PySide UI
+PySide6==6.6.1
 
 # For building executables
 pyinstaller==6.1.0 
