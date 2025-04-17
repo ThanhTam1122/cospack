@@ -52,28 +52,18 @@ def get_pickings(
     if filters:
         filter_conditions = []
         
-        if filters.get("picking_id"):
-            filter_conditions.append(PickingDetail.HANC016001 == filters["picking_id"])
-        
-        if filters.get("shipping_date_from") and filters.get("shipping_date_to"):
-            filter_conditions.append(and_(
-                PickingDetail.HANC016014 >= filters["shipping_date_from"],
-                PickingDetail.HANC016014 <= filters["shipping_date_to"]
-            ))
-        elif filters.get("shipping_date_from"):
-            filter_conditions.append(PickingDetail.HANC016014 >= filters["shipping_date_from"])
-        elif filters.get("shipping_date_to"):
-            filter_conditions.append(PickingDetail.HANC016014 <= filters["shipping_date_to"])
-        
-        if filters.get("customer_code"):
+        if filters.get("query"):
             filter_conditions.append(or_(
-                PickingDetail.HANC016A003 == filters["customer_code"],
-                PickingDetail.HANC016A004 == filters["customer_code"]
+                Customer.HANM001006.like(f"%{filters['query']}%"),
+                Personal.HANM004003.like(f"%{filters['query']}%"),
+                PickingWork.HANW002014.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016001.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016A003.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016A004.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016A001.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016A002.like(f"%{filters['query']}%")
             ))
-            
-        if filters.get("staff_code"):
-            filter_conditions.append(PickingWork.HANW002014 == filters["staff_code"])
-        
+
         if filter_conditions:
             query = query.filter(and_(*filter_conditions))
     
