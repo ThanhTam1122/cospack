@@ -36,16 +36,16 @@ def get_pickings(
             PickingDetail.HANC016A001.label("order_no_from"),
             PickingDetail.HANC016A002.label("order_no_to"),
             PickingDetail.HANC016014.label("shipping_date"),
-            PickingWork.HANW002014.label("staff_code"),
+            # PickingWork.HANW002014.label("staff_code"),
             Customer.HANM001006.label("customer_short_name"),
-            Personal.HANM004003.label("staff_short_name")
+            # Personal.HANM004003.label("staff_short_name")
         )
         .join(PickingManagement, PickingDetail.HANC016001 == PickingManagement.HANCA11001)
-        .join(PickingWork, PickingDetail.HANC016001 == PickingWork.HANW002009)
-        .outerjoin(Customer, PickingDetail.HANC016A003 == Customer.HANM001003)
-        .outerjoin(Personal, PickingWork.HANW002014 == Personal.HANM004001)
+        # .join(PickingWork, PickingDetail.HANC016001 == PickingWork.HANW002009)
+        .join(Customer, PickingDetail.HANC016A003 == Customer.HANM001003)
+        # .outerjoin(Personal, PickingWork.HANW002014 == Personal.HANM004001)
         .filter(PickingManagement.HANCA11002 == "1")
-        .filter(PickingWork.HANW002003 == "1")
+        # .filter(PickingWork.HANW002003 == "1")
     )
     
     # Apply filters if provided
@@ -56,7 +56,7 @@ def get_pickings(
             filter_conditions.append(or_(
                 Customer.HANM001006.like(f"%{filters['query']}%"),
                 Personal.HANM004003.like(f"%{filters['query']}%"),
-                PickingWork.HANW002014.like(f"%{filters['query']}%"),
+                # PickingWork.HANW002014.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016001.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A003.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A004.like(f"%{filters['query']}%"),
@@ -88,8 +88,8 @@ def get_pickings(
             "customer_code_from": row.customer_code_from.strip(),
             "customer_code_to": row.customer_code_to.strip(),
             "customer_short_name": row.customer_short_name.strip() if row.customer_short_name else "",
-            "staff_code": row.staff_code.strip(),
-            "staff_short_name": row.staff_short_name.strip() if row.staff_short_name else ""
+            "staff_code": "01658",
+            "staff_short_name": ""
         })
 
     return {
