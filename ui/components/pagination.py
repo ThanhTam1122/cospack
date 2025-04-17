@@ -1,10 +1,16 @@
-from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox )
+from PySide6.QtWidgets import ( QWidget, QHBoxLayout, QPushButton, QLabel, QComboBox )
+from PySide6.QtCore import Qt, Signal
+
 
 class Pagination(QWidget):
+
+    on_page_size_changed = Signal(int)
+    on_page_changed = Signal(int)
+
     def __init__(self):
         super().__init__()
 
-        self.items = [f"Item {i + 1}" for i in range(50)]
+        self.item_count = 0
         self.current_page = 0
         self.page_size = 5
 
@@ -19,7 +25,7 @@ class Pagination(QWidget):
         # Per-page ComboBox
         controls_layout.addWidget(QLabel("カウント:"))
         self.page_size_selector = QComboBox()
-        self.page_size_selector.addItems(["50", "100", "150", "200"])
+        self.page_size_selector.addItems(["50", "100", "200"])
         self.page_size_selector.setCurrentText(str(self.page_size))
         self.page_size_selector.currentTextChanged.connect(self.change_page_size)
         controls_layout.addWidget(self.page_size_selector)
@@ -42,15 +48,17 @@ class Pagination(QWidget):
 
         self.setLayout(controls_layout)
 
+    def update_item_count(self, item_count):
+        self.item_count = item_count
+        self.update_page()
+
     def update_page(self):
 
-        total_pages = max(1, (len(self.items) + self.page_size - 1) // self.page_size)
+        total_pages = max(1, (self.item_count + self.page_size - 1) // self.page_size)
 
         # Clamp current page
         self.current_page = max(0, min(self.current_page, total_pages - 1))
 
-        start = self.current_page * self.page_size
-        end = start + self.page_size
 
         self.page_label.setText(f"{self.current_page + 1} / {total_pages}")
         self.prev_btn.setEnabled(self.current_page > 0)
@@ -70,7 +78,7 @@ class Pagination(QWidget):
         self.update_page()
 
     def get_current_page(self):
-        return self.current_page
+        return max(1, self.current_page)
     
     def get_page_size(self):
         return self.page_size

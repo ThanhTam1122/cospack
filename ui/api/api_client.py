@@ -7,11 +7,10 @@ class ApiClient:
         self.base_url = base_url or os.environ.get("BACKEND_URL", "http://localhost:8000/api")
         print(f"======== Connecting to backend at: {self.base_url} ==========")
 
-    def get_pickings(self):
+    def get_pickings(self, params):
         try:
-            response = requests.get(f"{self.base_url}/pickings/")
+            response = requests.get(f"{self.base_url}/pickings/", params=params or {})
             response.raise_for_status()
-            time.sleep(2)
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")
@@ -21,7 +20,6 @@ class ApiClient:
         try:
             response = requests.get(f"{self.base_url}/pickings/")
             response.raise_for_status()
-            time.sleep(3)
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")
