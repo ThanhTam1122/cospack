@@ -11,7 +11,6 @@ class DataFetcherThread(QThread):
         self.api_client = api_client
         self.api_url = api_url
         self.params = params
-        print(params)
 
     def run(self):
         try:

@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
     def do_shipping(self):
         self.spinner.start()
         self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {})
-        self.shipping_thread.data_fetched.connect(lambda data: self.show_message("運送会社のデータを取得しました"))
+        self.shipping_thread.data_fetched.connect(lambda data: self.show_message("こんにちは。\n発送は無事完了しました。"))
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
 
@@ -98,24 +98,7 @@ class MainWindow(QMainWindow):
         msg = QMessageBox(self)
         msg.setText(message)
         msg.setWindowTitle("運送会社")
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: white;
-                color: white;
-                font-family: Arial;
-                font-size: 14px;
-                text-align: center;
-            }
-            QPushButton {
-                background-color: #3c8dbc;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #559ed5;
-            }
-        """)
+        msg.setIcon(QMessageBox.Information)
         msg.exec()
 
     def show_error(self, message):
