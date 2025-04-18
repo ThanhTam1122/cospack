@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(bottom_layout)
 
         self.spinner = Spinner(self)
+        self.shipping_btn.setFocus()
 
     def get_pickings(self):
         self.spinner.start()
