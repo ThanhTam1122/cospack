@@ -6,7 +6,7 @@ from PySide6.QtGui import QMovie
 class Spinner(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # self.setParent(parent)
+        self.setParent(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # <== Important!
         self.setAttribute(Qt.WA_NoSystemBackground, False)
@@ -19,7 +19,7 @@ class Spinner(QWidget):
         gif_path = os.path.abspath("./ui/assets/spinner.gif")
         self.movie = QMovie(gif_path)
 
-        self.movie.setSpeed(100)
+        self.movie.setSpeed(200)
         self.movie.setScaledSize(QSize(50, 50))
 
         self.spinner_label.setMovie(self.movie)

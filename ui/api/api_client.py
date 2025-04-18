@@ -11,6 +11,7 @@ class ApiClient:
         try:
             response = requests.get(f"{self.base_url}/pickings/", params=params or {})
             response.raise_for_status()
+            time.sleep(1)  
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")

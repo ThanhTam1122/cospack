@@ -7,7 +7,7 @@ class TableWidget(QTableWidget):
 
     def __init__(self):
         super().__init__()
-        self.row_count = 0
+        self.total_count = 0
         self.selected_count = 0
         self.selected_items = {}
         self.init_ui()
@@ -36,7 +36,7 @@ class TableWidget(QTableWidget):
 
         self.checkbox_all = QCheckBox()
         self.checkbox_all.setChecked(False)
-        self.checkbox_all.stateChanged.connect(self.toggle_select_all)
+        self.checkbox_all.clicked.connect(self.toggle_select_all)
         
         widget=QWidget(self.horizontalHeader())
         widget.setGeometry(QRect(0, 0, 38, 40))
@@ -48,9 +48,9 @@ class TableWidget(QTableWidget):
         self.setCellWidget(0, 0, widget)
 
     def update_table(self, items, total_count):
-        self.row_count = total_count
+        self.total_count = total_count
         self.setRowCount(0)
-        self.checkbox_all.setChecked(True)        
+        self.checkbox_all.setChecked(True)
         for row, item in enumerate(items):
             self.insertRow(row)
             
@@ -102,14 +102,15 @@ class TableWidget(QTableWidget):
 
         self.update_selection()
 
-    def toggle_select_all(self, state):
+    def toggle_select_all(self):
+        state = self.checkbox_all.checkState()
 
         for row in range(self.rowCount()):
             item = self.cellWidget(row, 0).findChild(QCheckBox)
             if item:
-                item.setChecked(1 if state == 2 else 0)
+                item.setChecked(state == Qt.Checked)
 
-            if state == 2:
+            if state == Qt.Checked:
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
@@ -124,12 +125,10 @@ class TableWidget(QTableWidget):
         self.update_selected_count()
 
     def update_selection (self):
-        self.selected_count = 0
         for row in range(self.rowCount()):
             checkbox = self.cellWidget(row, 0).findChild(QCheckBox)
 
             if checkbox and checkbox.isChecked():
-                self.selected_count += 1
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
@@ -150,7 +149,7 @@ class TableWidget(QTableWidget):
             if self.selected_items[key] == 1:
                 self.selected_count += 1
 
-        self.selection_updated.emit(self.row_count, self.selected_count)
+        self.selection_updated.emit(self.total_count, self.selected_count)
 
     def get_selected_item(self):
         print()
