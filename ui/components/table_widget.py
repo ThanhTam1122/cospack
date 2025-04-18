@@ -9,6 +9,7 @@ class TableWidget(QTableWidget):
         super().__init__()
         self.row_count = 0
         self.selected_count = 0
+        self.selected_items = {}
         self.init_ui()
 
     def init_ui(self):
@@ -33,23 +34,23 @@ class TableWidget(QTableWidget):
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.clicked.connect(self.on_row_click)
 
-        checkbox_all = QCheckBox()
-        checkbox_all.setChecked(False)
-        checkbox_all.stateChanged.connect(self.toggle_select_all)
+        self.checkbox_all = QCheckBox()
+        self.checkbox_all.setChecked(False)
+        self.checkbox_all.stateChanged.connect(self.toggle_select_all)
+        
         widget=QWidget(self.horizontalHeader())
         widget.setGeometry(QRect(0, 0, 38, 40))
         layout=QHBoxLayout(widget)
         layout.setAlignment(Qt.AlignCenter)  # Center the checkbox
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(checkbox_all)
+        layout.addWidget(self.checkbox_all)
         widget.setLayout(layout)
         self.setCellWidget(0, 0, widget)
 
     def update_table(self, items, total_count):
         self.row_count = total_count
-        self.selection_updated.emit(self.row_count, self.selected_count)
-
         self.setRowCount(0)
+        self.checkbox_all.setChecked(True)        
         for row, item in enumerate(items):
             self.insertRow(row)
             
@@ -57,7 +58,7 @@ class TableWidget(QTableWidget):
             checkbox_layout.setContentsMargins(0, 0, 0, 0)
             checkbox_widget = QWidget()
             checkbox = QCheckBox()
-            checkbox.clicked.connect(lambda i=item: self.on_checkbox_clicked(i))
+            checkbox.clicked.connect(self.on_checkbox_clicked)
             checkbox_layout.setAlignment(Qt.AlignCenter)
             checkbox_layout.addWidget(checkbox)
             checkbox_widget.setLayout(checkbox_layout)
@@ -75,25 +76,33 @@ class TableWidget(QTableWidget):
             self.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
             self.setItem(row, 12, QTableWidgetItem(""))
-            
-    def on_checkbox_clicked(self, item):
-        self.update_selected_row_count()
 
-    def on_row_click(self, index):
-        row = index.row()
+            picking_id = str(item.get("picking_id", ""))
+            if picking_id in self.selected_items and self.selected_items[picking_id] == 1:
+                checkbox.setChecked(True)
+                for i in range(self.columnCount()):
+                    item = self.item(row, i)
+                    if item:
+                        item.setSelected(True)
+            else:
+                self.checkbox_all.setChecked(False)
+
+        self.update_selected_count()
+
+    def on_checkbox_clicked(self):
+        self.update_selection()
+
+    def on_row_click(self, item):
+        row = item.row()
         checkbox = self.cellWidget(row, 0).findChild(QCheckBox)
         if checkbox and checkbox.isChecked():
             checkbox.setChecked(False)
         else:
             checkbox.setChecked(True)
-        self.update_selected_row_count()
+
+        self.update_selection()
 
     def toggle_select_all(self, state):
-        if state == 2:
-            self.selected_count = self.rowCount()
-        else:
-            self.selected_count = 0
-        self.selection_updated.emit(self.row_count, self.selected_count)
 
         for row in range(self.rowCount()):
             item = self.cellWidget(row, 0).findChild(QCheckBox)
@@ -105,13 +114,16 @@ class TableWidget(QTableWidget):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(True)
+                        self.selected_items[self.item(row, 1).text()] = 1
             else:
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(False)
+                        self.selected_items[self.item(row, 1).text()] = 0
+        self.update_selected_count()
 
-    def update_selected_row_count (self):
+    def update_selection (self):
         self.selected_count = 0
         for row in range(self.rowCount()):
             checkbox = self.cellWidget(row, 0).findChild(QCheckBox)
@@ -122,13 +134,26 @@ class TableWidget(QTableWidget):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(True)
+                        self.selected_items[self.item(row, 1).text()] = 1
             else:
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(False)
+                        self.selected_items[self.item(row, 1).text()] = 0
+        
+        self.update_selected_count()
+
+    def update_selected_count (self):
+        self.selected_count = 0
+        for key in self.selected_items.keys():
+            if self.selected_items[key] == 1:
+                self.selected_count += 1
 
         self.selection_updated.emit(self.row_count, self.selected_count)
+
+    def get_selected_item(self):
+        print()
 
     def clear_table(self):
         """Clear all rows from the table."""
