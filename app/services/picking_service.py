@@ -55,7 +55,6 @@ def get_pickings(
         if filters.get("query"):
             filter_conditions.append(or_(
                 Customer.HANM001006.like(f"%{filters['query']}%"),
-                Personal.HANM004003.like(f"%{filters['query']}%"),
                 # PickingWork.HANW002014.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016001.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A003.like(f"%{filters['query']}%"),
@@ -65,6 +64,7 @@ def get_pickings(
             ))
 
         if filter_conditions:
+            print(filter_conditions)
             query = query.filter(and_(*filter_conditions))
     
     # Get total count
