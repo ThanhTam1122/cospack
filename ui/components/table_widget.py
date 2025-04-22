@@ -152,7 +152,11 @@ class TableWidget(QTableWidget):
         self.selection_updated.emit(self.total_count, self.selected_count)
 
     def get_selected_item(self):
-        print()
+        result = []
+        for key in self.selected_items.keys():
+            if self.selected_items[key] == 1:
+                result.append(key)
+        return result
 
     def clear_table(self):
         """Clear all rows from the table."""
