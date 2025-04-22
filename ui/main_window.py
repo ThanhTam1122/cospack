@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         
-        self.setWindowTitle("COSPACK")
+        self.setWindowTitle("CosPacks")
         self.setMinimumSize(1500, 600)
     
         central_widget = QWidget()
