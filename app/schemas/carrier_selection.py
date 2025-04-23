@@ -7,9 +7,10 @@ class ProductInfo(BaseModel):
     """Product information for calculating shipping volume and weight"""
     product_code: int
     quantity: int
-    set_quantity: int = 1
-    outer_box_count: int
-    weight_per_unit: float
+    set_quantity: int = 1  # 入数 - how many items in one box
+    set_parcel_count: int = 1  # セット個口数量 - how many parcels per set
+    outer_box_count: int = 1  # 外箱入数 - capacity of outer box
+    weight_per_unit: float  # Weight per unit in kg
     outer_box_dimensions: Dict[str, float] = Field(
         ..., 
         description="Dimensions of outer box in cm",
@@ -19,15 +20,15 @@ class ProductInfo(BaseModel):
 
 class CarrierEstimate(BaseModel):
     """Estimated shipping cost for a specific carrier"""
-    carrier_code: int
+    carrier_code: str
     carrier_name: str
     parcel_count: int
-    volume: float
-    weight: float
-    size: int
-    cost: float
-    lead_time: int
-    is_capacity_available: bool
+    volume: float  # 才数 - volume unit (1 unit = 30.3cm cube)
+    weight: float  # Weight in kg
+    size: float  # Sum of three sides in cm
+    cost: float  # Shipping cost
+    lead_time: int  # Delivery lead time in days
+    is_capacity_available: bool  # Whether carrier has capacity for this shipment
 
 
 class CarrierSelectionRequest(BaseModel):
@@ -35,9 +36,9 @@ class CarrierSelectionRequest(BaseModel):
     picking_id: int
     delivery_postal_code: Optional[str] = None
     jis_address_code: Optional[str] = None
-    shipping_date: date
-    delivery_date: date
-    products: List[ProductInfo]
+    shipping_date: Optional[date] = None
+    delivery_date: Optional[date] = None
+    products: Optional[List[ProductInfo]] = None
 
 
 class CarrierSelectionDetail(BaseModel):
@@ -46,9 +47,9 @@ class CarrierSelectionDetail(BaseModel):
     parcel_count: int
     volume: float
     weight: float
-    size: int
+    size: float
     carrier_estimates: List[CarrierEstimate]
-    selected_carrier_code: int
+    selected_carrier_code: str
     selected_carrier_name: str
     selection_reason: str
 
@@ -71,4 +72,5 @@ class CarrierSelectionBatchResponse(BaseModel):
     """Response for batch carrier selection"""
     results: List[CarrierSelectionResponse]
     success: bool
-    message: Optional[str] = None 
+    message: Optional[str] = None
+    failed_pickings: Optional[List[int]] = None 
