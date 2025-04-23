@@ -11,14 +11,13 @@ class DataFetcherThread(QThread):
         self.api_client = api_client
         self.api_url = api_url
         self.params = params
-        print(params)
 
     def run(self):
         try:
             if(self.api_url == "get-pickings"):
                 resp = self.api_client.get_pickings(self.params)
             elif(self.api_url == "do-shipping"):
-                resp = self.api_client.do_shipping()
+                resp = self.api_client.do_shipping(self.params)
             self.data_fetched.emit(resp)
         except Exception as e:
             self.error_occurred.emit(str(e))

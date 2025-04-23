@@ -11,11 +11,11 @@ class SearchBar(QWidget):
         search_layout = QHBoxLayout()
         
         self.search_edit = QLineEdit()
+        self.search_edit.setStyleSheet("padding: 7px;")
         self.search_edit.setPlaceholderText("検索語を入力してください...")
-        self.search_edit.setStyleSheet("padding: 7px; border-radius: 5px; border: 1px solid #ccc;")
         
         self.search_button = QPushButton("検 索")
-        self.search_button.setStyleSheet("QPushButton { padding: 7px; }")
+        self.search_button.setStyleSheet("QPushButton { padding: 6px; }")
         self.search_button.clicked.connect(self.on_search_button_clicked)
         
         search_layout.addWidget(self.search_edit)

@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         
-        self.setWindowTitle("配 送 管 理")
+        self.setWindowTitle("CosPacks")
         self.setMinimumSize(1500, 600)
     
         central_widget = QWidget()
@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         title_label = QLabel("配 送 管 理")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px;")
-        main_layout.addWidget(title_label)
+        main_layout.addWidget(title_label)                                                             
 
         self.search_bar = SearchBar()
         self.search_bar.on_search.connect(lambda search_text: self.get_pickings())
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(bottom_layout)
 
         self.spinner = Spinner(self)
+        self.shipping_btn.setFocus()
 
     def get_pickings(self):
         self.spinner.start()
@@ -79,8 +80,10 @@ class MainWindow(QMainWindow):
 
     def do_shipping(self):
         self.spinner.start()
-        self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {})
-        self.shipping_thread.data_fetched.connect(lambda data: self.show_message("運送会社のデータを取得しました"))
+        self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {
+            "picking_ids": self.table.get_selected_items()
+        })
+        self.shipping_thread.data_fetched.connect(lambda data: self.show_message("こんにちは。\n発送は無事完了しました。"))
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
 
@@ -98,24 +101,7 @@ class MainWindow(QMainWindow):
         msg = QMessageBox(self)
         msg.setText(message)
         msg.setWindowTitle("運送会社")
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: white;
-                color: white;
-                font-family: Arial;
-                font-size: 14px;
-                text-align: center;
-            }
-            QPushButton {
-                background-color: #3c8dbc;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #559ed5;
-            }
-        """)
+        msg.setIcon(QMessageBox.Information)
         msg.exec()
 
     def show_error(self, message):
