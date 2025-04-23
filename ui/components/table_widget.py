@@ -151,7 +151,7 @@ class TableWidget(QTableWidget):
 
         self.selection_updated.emit(self.total_count, self.selected_count)
 
-    def get_selected_item(self):
+    def get_selected_items(self):
         result = []
         for key in self.selected_items.keys():
             if self.selected_items[key] == 1:

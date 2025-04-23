@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         title_label = QLabel("配 送 管 理")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px;")
-        main_layout.addWidget(title_label)
+        main_layout.addWidget(title_label)                                                             
 
         self.search_bar = SearchBar()
         self.search_bar.on_search.connect(lambda search_text: self.get_pickings())
@@ -80,7 +80,9 @@ class MainWindow(QMainWindow):
 
     def do_shipping(self):
         self.spinner.start()
-        self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {})
+        self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {
+            "picking_ids": self.table.get_selected_items()
+        })
         self.shipping_thread.data_fetched.connect(lambda data: self.show_message("こんにちは。\n発送は無事完了しました。"))
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
