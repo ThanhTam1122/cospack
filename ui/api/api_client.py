@@ -19,9 +19,9 @@ class ApiClient:
 
     def do_shipping(self, params):
         try:
-            response = requests.post(f"{self.base_url}/shipping/", params=params or {})
+            response = requests.post(f"{self.base_url}/shipping/", json=params or {})
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")
-            return []
+            return { "err_msg": f"{e}" }
