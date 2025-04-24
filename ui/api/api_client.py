@@ -24,4 +24,4 @@ class ApiClient:
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching items: {e}")
-            return { "status": 400, "err_msg": f"{e}" }
+            return { "err_msg": f"{e}" }
