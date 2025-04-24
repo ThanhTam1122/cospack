@@ -18,6 +18,10 @@ class DataFetcherThread(QThread):
                 resp = self.api_client.get_pickings(self.params)
             elif(self.api_url == "do-shipping"):
                 resp = self.api_client.do_shipping(self.params)
+
+            if "status" in resp and resp["status"] == 400:
+                self.error_occurred.emit(resp["err_msg"])
+                return
             self.data_fetched.emit(resp)
         except Exception as e:
             self.error_occurred.emit(str(e))
