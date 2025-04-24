@@ -50,6 +50,7 @@ def batch_select_carriers(
     For large batches, processing happens in the background and returns immediately.
     """
     # If batch is small, process immediately
+    print(f"Processing batch of {len(request.picking_ids)} pickings")
     if len(request.picking_ids) <= 10:
         try:
             result = carrier_selection_service.batch_select_carriers(db, request.picking_ids)

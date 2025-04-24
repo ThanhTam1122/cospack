@@ -399,8 +399,7 @@ class CarrierSelectionService:
         waybills = {}
         
         # Get order IDs from the picking works
-        order_ids = list(set([work.HANW002003 for work in picking_works if work.HANW002003]))
-        
+        order_ids = list(set([work.HANW002002 for work in picking_works if work.HANW002002]))
         # Get order headers and grouping data
         order_headers = {}
         for order_id in order_ids:
@@ -417,9 +416,9 @@ class CarrierSelectionService:
             if work.HANW002A005 == 1:  # Assuming this field tracks processed status
                 continue
                 
-            order_id = work.HANW002003
+            order_id = work.HANW002002
             header = order_headers.get(order_id)
-            
+
             if not header:
                 logger.warning(f"Order header not found for order {order_id}")
                 continue
@@ -427,31 +426,29 @@ class CarrierSelectionService:
             # Build grouping key based on the specified criteria
             # 1. HANR004015 - 入出荷予定日 (Planned shipping date)
             shipping_date = getattr(header, "HANR004015", None) or ""
-            
             # 2. HANR004006 - 納期日 (Delivery date)
             delivery_date = getattr(header, "HANR004006", None) or ""
             
             # 3. HANR004002 - 取引先コード (Customer code)
             customer_code = getattr(header, "HANR004002", None) or ""
-            
             # 4-5. HANR004A009, HANR004A010 - 納期情報1, 納期情報2 (Delivery info)
-            delivery_info1 = getattr(header, "HANR004A009", None) or ""
-            delivery_info2 = getattr(header, "HANR004A010", None) or ""
+            delivery_info1 = header.HANR004A009 or 0
+
+            delivery_info2 = header.HANR004A010 or 0
             
             # 6-11. Delivery destination info
-            dest_name1 = getattr(header, "HANR004A035", None) or ""
-            dest_name2 = getattr(header, "HANR004A036", None) or ""
-            dest_postal = getattr(header, "HANR004A037", None) or ""
-            dest_addr1 = getattr(header, "HANR004A039", None) or ""
-            dest_addr2 = getattr(header, "HANR004A040", None) or ""
-            dest_addr3 = getattr(header, "HANR004A041", None) or ""
+            dest_name1 = header.HANR004A035 or ""
+            dest_name2 = header.HANR004A036 or ""
+            dest_postal = header.HANR004A037 or ""
+            dest_addr1 = header.HANR004A039 or ""
+            dest_addr2 = header.HANR004A040 or ""
+            dest_addr3 = header.HANR004A041 or ""
             
             # Create the group key
-            group_key = f"{shipping_date}_{delivery_date}_{customer_code}_{delivery_info1}_{delivery_info2}_{dest_name1}_{dest_name2}_{dest_postal}_{dest_addr1}_{dest_addr2}_{dest_addr3}"
-            
+            group_key = f"{shipping_date}_{delivery_date}_{customer_code}_{delivery_info1}_{delivery_info2}_{dest_name1}_{dest_name2}_{dest_postal}"
             # Get prefecture code for lead time
-            prefecture_code = getattr(header, "HANR004A031", None) or ""
-            
+            prefecture_code = header.HANR004A031 or ""
+
             # Get or create waybill group
             if group_key not in waybills:
                 # Parse dates
@@ -550,11 +547,12 @@ class CarrierSelectionService:
         Returns:
             Selection results
         """
+
         # Check if picking exists
         picking = self.db.query(PickingManagement).filter(
             PickingManagement.HANCA11001 == picking_id
         ).first()
-        
+
         if not picking:
             return {
                 "picking_id": picking_id,
@@ -563,7 +561,7 @@ class CarrierSelectionService:
                 "success": False,
                 "message": f"Picking ID {picking_id} not found"
             }
-        
+
         # Get waybills from picking data
         waybills = self.get_picking_waybills(picking_id)
         

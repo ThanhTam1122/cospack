@@ -177,6 +177,13 @@ class JuHachuHeader(Base):
     HANR004A012 = Column("HANR004A012", CHAR(20), nullable=False, default='')  # 発注番号
     HANR004A013 = Column("HANR004A013", CHAR(3), nullable=False, default='')   # 伝票コメントコード
     HANR004A014 = Column("HANR004A014", NVARCHAR(36), nullable=True)          # 伝票コメント
+    HANR004A031 = Column("HANR004A031", CHAR(2), nullable=True)
+    HANR004A035 = Column("HANR004A035", NVARCHAR(32), nullable=True)
+    HANR004A036 = Column("HANR004A036", NVARCHAR(32), nullable=True)
+    HANR004A037 = Column("HANR004A037", NVARCHAR(10), nullable=True)
+    HANR004A039 = Column("HANR004A039", NVARCHAR(32), nullable=True)
+    HANR004A040 = Column("HANR004A040", NVARCHAR(32), nullable=True)
+    HANR004A041 = Column("HANR004A041", NVARCHAR(32), nullable=True)
     
     # More A series fields
     # The rest of the fields would continue here following the same pattern...
