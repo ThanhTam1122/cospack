@@ -9,5 +9,6 @@ from app.models.transportation_capacity import TransportationCapacity
 from app.models.shipping_slip import ShippingSlip
 from app.models.carrier_selection_log import CarrierSelectionLog
 from app.models.carrier_selection_log_detail import CarrierSelectionLogDetail
+from app.models.postal_jis_mapping import PostalJISMapping
 
 # Add any other models as they are created 

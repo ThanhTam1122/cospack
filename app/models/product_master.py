@@ -187,6 +187,7 @@ class ProductMaster(Base):
     HANM003A005 = Column("HANM003A005", DECIMAL(2, 0), nullable=False, default=0)  # セット個口数量
     HANM003A006 = Column("HANM003A006", DECIMAL(7, 0), nullable=False, default=0)  # 重量(g)
     HANM003A007 = Column("HANM003A007", DECIMAL(7, 0), nullable=False, default=0)  # 梱包重量(g)
+    HANM003A107 = Column("HANM003A107", DECIMAL(6, 6), nullable=False, default=0)  # 才数(WareNaviFine)
     
     # Only including a subset of extended attributes due to character limit constraints
     # The complete set would continue from HANM003A008 through HANM003A109
