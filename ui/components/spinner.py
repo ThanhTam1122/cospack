@@ -1,11 +1,12 @@
 import os
-from PySide6.QtWidgets import ( QWidget, QLabel )
+from PySide6.QtWidgets import ( QWidget, QLabel, QGraphicsBlurEffect)
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QMovie
 
 class Spinner(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.blur_radius = 5
         self.setParent(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # <== Important!
@@ -14,6 +15,10 @@ class Spinner(QWidget):
         self.setWindowFlags(Qt.Widget | Qt.FramelessWindowHint)
         self.setGeometry(parent.rect())
 
+        self.background = QLabel(self)
+        self.background.setGeometry(0, 0, self.parent().width(), self.parent().height())
+
+        self.make_bg_blur(self.blur_radius)
         self.spinner_label = QLabel(self)
         self.spinner_label.setGeometry(parent.rect())
         gif_path = os.path.abspath("./ui/assets/spinner.gif")
@@ -27,8 +32,20 @@ class Spinner(QWidget):
 
         self.hide()
 
+    def make_bg_blur(self, blur_radius):
+        
+        pixmap = self.parent().grab()
+        self.background.setPixmap(pixmap)
+        self.background.setScaledContents(True)
+
+        # Step 2: Apply blur to background only
+        self.blur_effect = QGraphicsBlurEffect()
+        self.blur_effect.setBlurRadius(blur_radius)
+        self.background.setGraphicsEffect(self.blur_effect)
+
     def start(self):
         self.setGeometry(self.parent().rect())
+        self.make_bg_blur(self.blur_radius)
         self.movie.start()
         self.show()
 

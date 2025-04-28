@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Integer, String, Date
 from app.db.base import Base
 
-class ShippingSlip(Base):
+class Waybill(Base):
     """
     送り状マスタ
-    Shipping Slip Master
+    Waybill Master
     """
     __tablename__ = "HAN10M009OKURIJO"
 

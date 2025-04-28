@@ -1,5 +1,4 @@
 import sys
-import json
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox)
 from PySide6.QtCore import Qt

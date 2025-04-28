@@ -1,8 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Numeric, CHAR, Text
+from sqlalchemy import Column, CHAR
 from sqlalchemy.types import DECIMAL
-from sqlalchemy.dialects.mssql import NVARCHAR, DATETIME2, MONEY, UNIQUEIDENTIFIER, VARCHAR, SMALLDATETIME, BIT
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy.dialects.mssql import NVARCHAR, UNIQUEIDENTIFIER, VARCHAR, SMALLDATETIME, BIT
 from sqlalchemy.sql.expression import text
 from app.db.base import Base
 import uuid

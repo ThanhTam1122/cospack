@@ -1,14 +1,22 @@
-from sqlalchemy import Column, Integer
-from sqlalchemy.types import DECIMAL
-from sqlalchemy.dialects.mssql import NVARCHAR
+from sqlalchemy import Column, Integer, String, Float, DECIMAL
+from sqlalchemy.dialects.mssql import NVARCHAR, CHAR
 from app.db.base import Base
 
 class TransportationArea(Base):
     """
+    運送エリアマスタ (HAN99MA10TRANSPORTATIONAREA)
     Transportation Area Master
     """
-    __tablename__ = "HAN10M005UNSO_AREA"
+    __tablename__ = "HAN99MA10TRANSPORTATIONAREA"
+    
+    # 運送エリアコード - Transportation Area Code
+    HANMA10001 = Column("HANMA10001", CHAR(8), primary_key=True, nullable=False)
+    
+    # 運送エリア名 - Transportation Area Name
+    HANMA10002 = Column("HANMA10002", NVARCHAR(256), nullable=False)
+    
+    # 距離（km） - Distance in kilometers
+    HANMA10003 = Column("HANMA10003", DECIMAL(5, 0), nullable=True)
 
-    HANM004001 = Column("HANM004001", Integer, primary_key=True, nullable=False)
-    HANM004002 = Column("HANM004002", NVARCHAR(64), nullable=False)
-    HANM004003 = Column("HANM004003", DECIMAL(10, 2), nullable=True)
+    def __repr__(self):
+        return f"<TransportationArea {self.HANMA10001}>"

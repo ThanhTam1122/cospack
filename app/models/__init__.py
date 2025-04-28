@@ -6,8 +6,9 @@ from app.models.transportation_area import TransportationArea
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.transportation_fee import TransportationFee
 from app.models.transportation_capacity import TransportationCapacity
-from app.models.shipping_slip import ShippingSlip
+from app.models.waybill import Waybill
 from app.models.carrier_selection_log import CarrierSelectionLog
 from app.models.carrier_selection_log_detail import CarrierSelectionLogDetail
+from app.models.postal_jis_mapping import PostalJISMapping
 
 # Add any other models as they are created 
