@@ -13,7 +13,6 @@ from app.models.transportation_area import TransportationArea
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.transportation_fee import TransportationFee
 from app.models.transportation_capacity import TransportationCapacity
-from app.models.shipping_slip import ShippingSlip
 from app.models.carrier_selection_log import CarrierSelectionLog
 from app.models.carrier_selection_log_detail import CarrierSelectionLogDetail
 from app.models.product_master import ProductMaster
@@ -23,7 +22,6 @@ from app.models.special_lead_time_master import SpecialLeadTimeMaster
 from app.models.transportation_company_master import TransportationCompanyMaster
 from app.models.juhachu import JuHachuHeader, MeisaiKakucho
 from app.models.waybill import Waybill
-from app.models.waybill_to_carrier import WaybillToCarrier
 from app.models.special_capacity import SpecialCapacity
 
 from app.services.fee_calculation_service import FeeCalculationService
@@ -428,8 +426,8 @@ class CarrierSelectionService:
             Dictionary with selection results
         """
         # Get the picking
-        picking = self.db.query(Picking).filter(
-            Picking.HANPK01001 == picking_id
+        picking = self.db.query(PickingManagement).filter(
+            PickingManagement.HANCA11001 == picking_id
         ).first()
         
         if not picking:
@@ -441,7 +439,7 @@ class CarrierSelectionService:
             
         # Get all waybills for this picking
         waybills = self.get_picking_waybills(picking_id)
-        
+        print(f"waybills: {waybills}")
         results = []
         for waybill in waybills:
             waybill_id = waybill["waybill_id"]
