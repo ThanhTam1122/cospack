@@ -69,6 +69,9 @@ class FeeCalculationService:
         # Query both product master and product sub master
         product = self.db.query(
             ProductMaster, ProductSubMaster
+        ).join(
+            ProductSubMaster, 
+            ProductMaster.HANM003001 == ProductSubMaster.HANMA33001
         ).filter(
             ProductMaster.HANM003001 == product_code,
             ProductSubMaster.HANMA33001 == product_code
@@ -79,7 +82,6 @@ class FeeCalculationService:
             return None
         
         product_master, product_sub = product
-        
         # Extract product information based on the requirements
         result = {
             "product_code": product_code,
@@ -344,14 +346,14 @@ class FeeCalculationService:
             
             # Process each parcel separately
             for parcel in parcels:
-                parcel_size = parcel.get("size", 0)
-                parcel_count = parcel.get("count", 1)
+                parcel_size = float(parcel.get("size", 0))
+                parcel_count = int(parcel.get("count", 1))
                 
                 # Find the appropriate fee record for this parcel size
                 parcel_fee = None
                 for fee in fee_records:
                     # Skip if size exceeds max (if max is specified)
-                    if fee.HANMA12005 is not None and parcel_size > fee.HANMA12005:
+                    if fee.HANMA12005 is not None and parcel_size > float(fee.HANMA12005):
                         continue
                     
                     # We found a matching fee record
@@ -371,11 +373,11 @@ class FeeCalculationService:
         # For other fee types (fixed amount or volume-based), use the first suitable fee record
         for fee in fee_records:
             # Skip if weight exceeds max (if max is specified)
-            if fee.HANMA12003 is not None and weight > fee.HANMA12003:
+            if fee.HANMA12003 is not None and weight > float(fee.HANMA12003):
                 continue
                 
             # Skip if volume exceeds max (if max is specified)
-            if fee.HANMA12004 is not None and volume > fee.HANMA12004:
+            if fee.HANMA12004 is not None and volume > float(fee.HANMA12004):
                 continue
             
             # Calculate fee based on fee type
@@ -384,108 +386,73 @@ class FeeCalculationService:
                 
             elif fee_type == "2":  # Volume-based pricing
                 # Adjust volume by subtracting minus volume (if any)
-                adjusted_volume = max(0, volume - (fee.HANMA12007 or 0))
+                minus_volume = float(fee.HANMA12007 or 0)
+                adjusted_volume = max(0, volume - minus_volume)
                 # Calculate fee: base amount + (volume * unit price)
-                return float((fee.HANMA12008 or 0) + (adjusted_volume * (fee.HANMA12006 or 0)))
+                base_amount = float(fee.HANMA12008 or 0)
+                unit_price = float(fee.HANMA12006 or 0)
+                total_fee = base_amount + (adjusted_volume * unit_price)
+                return total_fee
         
         logger.warning(f"No suitable transportation fee record found for metrics: "
                      f"carrier={carrier_code}, area={area_code}, "
                      f"parcels={len(parcels)}, volume={volume}, weight={weight}")
         return None
 
-    # Add a method to prepare parcels info for shipping fee calculation
-    def prepare_parcels_for_fee_calculation(self, products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def prepare_parcels_for_fee_calculation(self, parcels_or_size_data):
         """
-        Prepare parcels information for shipping fee calculation, grouping by size
+        Prepare parcels data for fee calculation based on the input format.
         
         Args:
-            products: List of products to ship
-            
+            parcels_or_size_data: Either a list of parcels with size data, 
+                                 or a single size value, or a list of sizes
+        
         Returns:
-            List of parcels with size and count
+            List of dictionaries with standardized parcel data
+            Each dict includes: {"size": size_in_cm, "count": quantity}
         """
-        parcels = []
-        
-        for product_info in products:
-            product_code = product_info["product_code"]
-            quantity = product_info["quantity"]
+        if not parcels_or_size_data:
+            return []
             
-            if quantity <= 0:
-                continue
+        # If already in the correct format
+        if isinstance(parcels_or_size_data, list) and isinstance(parcels_or_size_data[0], dict) and "size" in parcels_or_size_data[0]:
+            return parcels_or_size_data
             
-            # Get detailed product information
-            product_details = self.get_product_info(product_code)
-            if not product_details:
-                logger.warning(f"Skipping product {product_code} - product details not found")
-                continue
+        # If a single size value is provided
+        if isinstance(parcels_or_size_data, (int, float)):
+            return [{"size": parcels_or_size_data, "count": 1}]
             
-            # Get key product metrics
-            set_parcel_count = product_details.get("set_parcel_count", 1)
-            outer_box_count = product_details.get("outer_box_count", 1)
-            
-            if outer_box_count <= 0:
-                outer_box_count = 1  # Prevent division by zero
+        # If a list of sizes is provided
+        if isinstance(parcels_or_size_data, list):
+            if all(isinstance(item, (int, float)) for item in parcels_or_size_data):
+                return [{"size": size, "count": 1} for size in parcels_or_size_data]
                 
-            # Calculate complete boxes and remaining items
-            complete_boxes = quantity // outer_box_count
-            remaining_items = quantity % outer_box_count
-            
-            # Process each box type for this product
-            box_dimensions = product_details.get("outer_box_dimensions", [])
-            
-            for box_idx, box_dim in enumerate(box_dimensions):
-                if box_idx >= set_parcel_count:
-                    break
-                    
-                length = box_dim.get("length", 0)
-                width = box_dim.get("width", 0)
-                height = box_dim.get("height", 0)
-                
-                # Calculate size (sum of three sides)
-                size = length + width + height
-                
-                if box_idx == 0:
-                    # For the first box type (or if only one type)
-                    # Add complete boxes
-                    if complete_boxes > 0:
-                        parcels.append({
-                            "size": size,
-                            "count": complete_boxes
-                        })
-                    
-                    # Add partial box if needed
-                    if remaining_items > 0:
-                        # Adjust height proportionally for remaining items
-                        adjusted_height = height * (remaining_items / outer_box_count)
-                        partial_box_size = length + width + adjusted_height
+            # If a list of objects with different properties
+            result = []
+            for parcel in parcels_or_size_data:
+                if isinstance(parcel, dict):
+                    # Look for size information in various possible keys
+                    size = None
+                    for key in ["size", "parcel_size", "three_sides_sum"]:
+                        if key in parcel:
+                            size = parcel[key]
+                            break
+                            
+                    # Look for count information
+                    count = 1
+                    for key in ["count", "quantity", "parcel_count"]:
+                        if key in parcel and parcel[key]:
+                            count = parcel[key]
+                            break
+                            
+                    if size:
+                        result.append({"size": size, "count": count})
                         
-                        parcels.append({
-                            "size": partial_box_size,
-                            "count": 1
-                        })
-                else:
-                    # For additional box types, add based on total quantity
-                    # Each box type will add to the parcel count based on the total quantity
-                    parcels.append({
-                        "size": size,
-                        "count": quantity
-                    })
-        
-        # Consolidate parcels with the same size
-        consolidated_parcels = {}
-        for parcel in parcels:
-            size = parcel["size"]
-            count = parcel["count"]
+            return result if result else [{"size": 0, "count": 1}]
             
-            if size in consolidated_parcels:
-                consolidated_parcels[size] += count
-            else:
-                consolidated_parcels[size] = count
-        
-        # Convert back to list
-        result = [{"size": size, "count": count} for size, count in consolidated_parcels.items()]
-        
-        return result
+        # Default fallback
+        logger.warning(f"Unexpected parcel data format: {type(parcels_or_size_data)}")
+        return [{"size": 0, "count": 1}]
 
     def check_carrier_capacity(self, carrier_code: str, volume: float, weight: float) -> bool:
         """
@@ -517,13 +484,13 @@ class FeeCalculationService:
             # Capacity record is not applicable for today's date
             return True
         
-        # Check volume capacity
-        if capacity.HANM014005 is not None and volume > capacity.HANM014005:
+        # Check volume capacity - convert decimal to float for comparison
+        if capacity.HANM014005 is not None and volume > float(capacity.HANM014005):
             logger.info(f"Carrier {carrier_code} capacity exceeded: volume {volume} > max {capacity.HANM014005}")
             return False
             
-        # Check weight capacity
-        if capacity.HANM014006 is not None and weight > capacity.HANM014006:
+        # Check weight capacity - convert decimal to float for comparison
+        if capacity.HANM014006 is not None and weight > float(capacity.HANM014006):
             logger.info(f"Carrier {carrier_code} capacity exceeded: weight {weight} > max {capacity.HANM014006}")
             return False
             
@@ -683,160 +650,179 @@ class FeeCalculationService:
         return estimated_delivery <= deadline_date
     
     def select_optimal_carrier(self, jis_code: str, parcels: List[Dict[str, Any]], 
-                               volume: float, weight: float, size: float, 
-                               shipping_date: date, delivery_deadline: date = None,
-                               previous_carrier: str = None) -> Dict[str, Any]:
+                             volume: float, weight: float, size: float, 
+                             shipping_date: date, delivery_deadline: date = None,
+                             previous_carrier: str = None) -> Dict[str, Any]:
         """
-        Select the optimal carrier based on cost, lead time, and capacity
+        Select the optimal carrier based on shipping metrics and constraints
         
         Args:
-            jis_code: JIS address code
-            parcels: List of parcels with size and count
-            volume: Volume in volume units
-            weight: Weight in kg
-            size: Size (sum of three sides) in cm
-            shipping_date: Planned shipping date
-            delivery_deadline: Optional delivery deadline
-            previous_carrier: Previously used carrier for this customer
+            jis_code: JIS code of the delivery destination
+            parcels: List of parcels with their sizes and counts
+            volume: Total volume of the shipment (才数)
+            weight: Total weight of the shipment in kg
+            size: Maximum size of any parcel (sum of three sides in cm)
+            shipping_date: Shipping date
+            delivery_deadline: Delivery deadline date (optional)
+            previous_carrier: Previously used carrier code for this customer (optional)
             
         Returns:
-            Dictionary containing selection results
+            Dictionary with carrier selection results
         """
-        # Get area code from JIS code
+        if not jis_code:
+            return {
+                "success": False,
+                "message": "JIS code is required for carrier selection",
+                "carriers": []
+            }
+        # Get prefecture code from JIS code (first 2 digits)
+        prefecture_code = jis_code[:2] if len(jis_code) >= 2 else None
+        if not prefecture_code:
+            return {
+                "success": False,
+                "message": f"Invalid JIS code: {jis_code}",
+                "carriers": []
+            }
+            
+        # Get transportation area code from JIS code
         area_code = self.get_area_code_from_jis_code(jis_code)
         if not area_code:
             return {
                 "success": False,
-                "message": f"Unable to find area code for JIS code {jis_code}",
-                "carriers": []
-            }
-        
-        # Get prefecture code from JIS code (first 2 digits)
-        prefecture_code = jis_code[:2] if jis_code and len(jis_code) >= 2 else None
-        if not prefecture_code:
-            return {
-                "success": False,
-                "message": f"Unable to extract prefecture code from JIS code {jis_code}",
+                "message": f"Could not find transportation area for JIS code {jis_code}",
                 "carriers": []
             }
             
-        # Get all available transportation companies
-        carriers = self.db.query(TransportationCompanyMaster).filter(
-            TransportationCompanyMaster.HANMA02DEL.is_(None)  # Not deleted
-        ).all()
+        # Get all available carriers
+        carriers = self.db.query(TransportationCompanyMaster).all()
+        carrier_estimates = []
         
-        if not carriers:
-            return {
-                "success": False,
-                "message": "No transportation companies available",
-                "carriers": []
-            }
-            
-        # Prepare results
-        estimates = []
-        cheapest_cost = float('inf')
         cheapest_carrier = None
-        fastest_lead_time = float('inf')
+        cheapest_cost = float('inf')
+        
         fastest_carrier = None
+        fastest_lead_time = float('inf')
+        
+        # Prepare parcels for fee calculation if not provided in correct format
+        if not parcels or not isinstance(parcels[0], dict) or "size" not in parcels[0]:
+            parcels = self.prepare_parcels_for_fee_calculation(parcels)
         
         for carrier in carriers:
             carrier_code = carrier.HANMA02001
             carrier_name = carrier.HANMA02002
             
-            # Skip if shipping date is a holiday for this carrier
-            if self.is_holiday(shipping_date, carrier_code):
-                logger.info(f"Carrier {carrier_name} skipped - does not ship on {shipping_date}")
-                continue
-            
-            # Check if carrier has general capacity
+            # Check general capacity
             has_capacity = self.check_carrier_capacity(carrier_code, volume, weight)
             
-            # Check if carrier has special capacity for this prefecture and date
-            has_special_capacity = self.check_special_capacity(carrier_code, prefecture_code, shipping_date)
+            # Check special capacity for the prefecture
+            has_special_capacity = self.check_special_capacity(
+                carrier_code=carrier_code,
+                prefecture_code=prefecture_code,
+                shipping_date=shipping_date
+            )
             
-            # Skip if either capacity check fails
+            # Skip carrier if no capacity available
             if not has_capacity or not has_special_capacity:
-                logger.info(f"Carrier {carrier_name} skipped - no capacity available")
+                carrier_estimates.append({
+                    "carrier_code": carrier_code,
+                    "carrier_name": carrier_name,
+                    "cost": None,
+                    "lead_time": None,
+                    "is_capacity_available": False,
+                    "meets_deadline": False,
+                    "is_previously_used": carrier_code == previous_carrier
+                })
                 continue
-            
-            # Calculate shipping fee with parcels information
-            fee = self.calculate_shipping_fee(carrier_code, area_code, parcels, volume, weight)
+                
+            # Calculate shipping fee based on all parcels
+            fee = self.calculate_shipping_fee(
+                carrier_code=carrier_code,
+                area_code=area_code,
+                parcels=parcels,
+                volume=volume,
+                weight=weight
+            )
             
             # Calculate lead time
-            lead_time = self.calculate_lead_time(carrier_code, prefecture_code, shipping_date) if prefecture_code else None
+            lead_time = self.calculate_lead_time(
+                carrier_code=carrier_code,
+                prefecture_code=prefecture_code,
+                shipping_date=shipping_date
+            )
             
-            # Skip carriers with no fee information or lead time
+            # Skip carriers with no fee or lead time information
             if fee is None or lead_time is None:
                 continue
-            
-            # Check if delivery meets deadline
+                
+            # Check if carrier can meet the delivery deadline
             meets_deadline = True
             if delivery_deadline:
-                meets_deadline = self.check_delivery_deadline(shipping_date, lead_time, delivery_deadline)
-                
-                # Skip carriers that can't meet the deadline
-                if not meets_deadline:
-                    logger.info(f"Carrier {carrier_name} skipped - cannot meet delivery deadline")
-                    continue
-                
+                meets_deadline = self.check_delivery_deadline(
+                    shipping_date=shipping_date,
+                    lead_time=lead_time,
+                    deadline_date=delivery_deadline
+                )
+            
             # Create carrier estimate
             estimate = {
                 "carrier_code": carrier_code,
                 "carrier_name": carrier_name,
-                "parcel_count": len(parcels),
-                "volume": volume,
-                "weight": weight,
-                "size": size,
                 "cost": fee,
                 "lead_time": lead_time,
-                "is_capacity_available": has_capacity and has_special_capacity,
-                "meets_deadline": meets_deadline
+                "is_capacity_available": True,
+                "meets_deadline": meets_deadline,
+                "is_previously_used": carrier_code == previous_carrier
             }
             
-            estimates.append(estimate)
+            carrier_estimates.append(estimate)
             
-            # Track cheapest carrier with available capacity
+            # Track cheapest carrier with capacity
             if has_capacity and has_special_capacity and fee < cheapest_cost:
                 cheapest_cost = fee
                 cheapest_carrier = estimate
-            
-            # Track fastest carrier with available capacity
+                
+            # Track fastest carrier with capacity
             if has_capacity and has_special_capacity and lead_time < fastest_lead_time:
                 fastest_lead_time = lead_time
                 fastest_carrier = estimate
         
-        # Determine the optimal carrier
+        # Determine the optimal carrier based on business rules
         selected_carrier = None
         selection_reason = ""
         
-        # First priority: Continue using the same carrier if possible
+        # Rule 1: If a previous carrier was used successfully, prioritize it if meets requirements
         if previous_carrier:
-            for estimate in estimates:
-                if estimate["carrier_code"] == previous_carrier and estimate["is_capacity_available"]:
-                    selected_carrier = estimate
-                    selection_reason = "Using previously selected carrier for consistency"
+            for carrier in carrier_estimates:
+                if (carrier["carrier_code"] == previous_carrier and 
+                    carrier["is_capacity_available"] and
+                    carrier["meets_deadline"]):
+                    selected_carrier = carrier
+                    selection_reason = "Previously used carrier with available capacity"
                     break
         
-        # Second priority: Use the cheapest carrier
+        # Rule 2: If no previous carrier or it's unavailable, use cheapest option
         if not selected_carrier and cheapest_carrier:
             selected_carrier = cheapest_carrier
-            selection_reason = "Selected lowest cost carrier"
+            selection_reason = "Lowest cost carrier with available capacity"
+            
+        # Rule 3: If deadline is critical and cheapest can't meet it, use fastest
+        if delivery_deadline and selected_carrier and not selected_carrier["meets_deadline"]:
+            if fastest_carrier and fastest_carrier["meets_deadline"]:
+                selected_carrier = fastest_carrier
+                selection_reason = "Fastest carrier to meet delivery deadline"
         
-        # Third priority: Use the fastest carrier if cost difference is acceptable
-        if not selected_carrier and fastest_carrier:
-            selected_carrier = fastest_carrier
-            selection_reason = "Selected fastest carrier"
-        
+        # If no suitable carrier was found
         if not selected_carrier:
             return {
                 "success": False,
-                "message": "No suitable carrier found",
-                "carriers": estimates
+                "message": "No suitable carrier found with available capacity",
+                "carriers": carrier_estimates
             }
         
         return {
             "success": True,
-            "carriers": estimates,
+            "message": "Carrier selection successful",
+            "carriers": carrier_estimates,
             "selected_carrier": selected_carrier,
             "selection_reason": selection_reason
         } 
