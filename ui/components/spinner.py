@@ -6,12 +6,12 @@ from PySide6.QtGui import QMovie
 class Spinner(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.blur_radius = 5
+        self.blur_radius = 3
         self.setParent(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # <== Important!
         self.setAttribute(Qt.WA_NoSystemBackground, False)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 25);")
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 50);")
         self.setWindowFlags(Qt.Widget | Qt.FramelessWindowHint)
         self.setGeometry(parent.rect())
 
@@ -25,6 +25,7 @@ class Spinner(QWidget):
         self.movie = QMovie(gif_path)
 
         self.movie.setSpeed(200)
+        self.movie.setBackgroundColor(Qt.transparent)
         self.movie.setScaledSize(QSize(50, 50))
 
         self.spinner_label.setMovie(self.movie)
