@@ -63,11 +63,10 @@ class TableWidget(QTableWidget):
             checkbox_layout.addWidget(checkbox)
             checkbox_widget.setLayout(checkbox_layout)
             self.setCellWidget(row, 0, checkbox_widget)
-
             self.setItem(row, 1, QTableWidgetItem(str(item.get("picking_id", ""))))
             self.setItem(row, 2, QTableWidgetItem(str(item.get("picking_date", ""))))
-            self.setItem(row, 3, QTableWidgetItem(item.get("picking_time", "")))
-            self.setItem(row, 4, QTableWidgetItem(item.get("shipping_date", "")))
+            self.setItem(row, 3, QTableWidgetItem(str(item.get("picking_time", ""))))
+            self.setItem(row, 4, QTableWidgetItem(str(item.get("shipping_date", ""))))
             self.setItem(row, 5, QTableWidgetItem(str(item.get("order_no_from", ""))))
             self.setItem(row, 6, QTableWidgetItem(str(item.get("order_no_to", ""))))
             self.setItem(row, 7, QTableWidgetItem(str(item.get("customer_code_from", ""))))

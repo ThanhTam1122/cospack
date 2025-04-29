@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
         self.spinner.stop()
 
     def on_shipping_success(self, resp):
-        self.show_message("運送会社", "運送会社\n" + resp["message"], QMessageBox.Information if resp["success"] == True else QMessageBox.Warning)
+        self.show_message("運送会社", "運送会社\n" + resp["message"], QMessageBox.Information if resp["success"] == True else QMessageBox.Critical)
 
     def update_selection(self, row_count, selected_count):
         self.selected_records.setText(f" {row_count} / {selected_count}")
