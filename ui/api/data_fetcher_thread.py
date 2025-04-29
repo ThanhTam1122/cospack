@@ -17,6 +17,8 @@ class DataFetcherThread(QThread):
             elif(self.api_url == "do-shipping"):
                 resp = self.api_client.do_shipping(self.params)
 
+            print(resp)
+
             if "err_msg" in resp:
                 self.error_occurred.emit(resp["err_msg"])
                 return

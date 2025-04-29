@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
             "skip": self.pagination.get_page_size() * (self.pagination.get_current_page()),
             "limit": self.pagination.get_page_size()
         })
-        self.data_thread.data_fetched.connect(lambda resp: self.update_table(resp))
+        self.data_thread.data_fetched.connect(lambda resp: self.on_picking_data_success(resp))
         self.data_thread.error_occurred.connect(self.show_error)
         self.data_thread.start()
 
@@ -82,25 +82,28 @@ class MainWindow(QMainWindow):
         self.shipping_thread = DataFetcherThread(self.api_client, "do-shipping", {
             "picking_ids": self.table.get_selected_items()
         })
-        self.shipping_thread.data_fetched.connect(lambda data: self.show_message("こんにちは。\n発送は無事完了しました。"))
+        self.shipping_thread.data_fetched.connect(lambda resp: self.on_shipping_success(resp))
         self.shipping_thread.error_occurred.connect(self.show_error)
         self.shipping_thread.start()
 
-    def update_table(self, resp):
+    def on_picking_data_success(self, resp):
         if "pickings" in resp:
             self.table.update_table(resp["pickings"], resp["total"])
             self.pagination.update_item_count(resp["total"])
         self.spinner.stop()
 
+    def on_shipping_success(self, resp):
+        self.show_message("運送会社", "運送会社\n" + resp["message"], QMessageBox.Information if resp["success"] == True else QMessageBox.Warning)
+
     def update_selection(self, row_count, selected_count):
         self.selected_records.setText(f" {row_count} / {selected_count}")
 
-    def show_message(self, message):
+    def show_message(self, title, message, type):
         self.spinner.stop()
         msg = QMessageBox(self)
         msg.setText(message)
-        msg.setWindowTitle("運送会社")
-        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle(title)
+        msg.setIcon(type)
         msg.exec()
 
     def show_error(self, message):
