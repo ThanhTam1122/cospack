@@ -112,6 +112,18 @@ class CarrierSelectionService:
             weight=weight
         )
 
+    def check_special_capacity(self, carrier_code: str, shipping_date: date, volume: float, weight: float) -> bool:
+        """
+        Check if the carrier has special capacity limitations for the shipping date
+        """
+        # Use the fee calculator service to check special capacity
+        return self.fee_calculator.check_special_capacity(
+            carrier_code=carrier_code,
+            shipping_date=shipping_date,
+            volume=volume,
+            weight=weight
+        )
+
     def calculate_lead_time(self, carrier_code: str, prefecture_code: str, 
                           shipping_date: date) -> Optional[int]:
         """
@@ -676,18 +688,69 @@ class CarrierSelectionService:
                 "message": f"Picking ID {picking_id} not found"
             }
             
-        # Get waybills from picking data
-        waybills = self.get_picking_waybills(picking_id)
+        # Check if the picking has any associated orders before trying to get waybills
+        picking_work_count = self.db.query(PickingWork).filter(
+            PickingWork.HANW002009 == picking_id
+        ).count()
         
-        if not waybills:
-            logger.warning(f"No waybills found for picking ID {picking_id}")
+        if picking_work_count == 0:
+            logger.warning(f"No picking works found for picking ID {picking_id}")
             return {
                 "picking_id": picking_id,
                 "waybill_count": 0,
                 "selection_details": [],
                 "success": False,
-                "message": f"No waybills found for picking ID {picking_id}"
+                "message": f"No orders found for picking ID {picking_id}"
             }
+        
+        # Get all orders associated with this picking
+        all_order_ids = self.db.query(PickingWork.HANW002002).filter(
+            PickingWork.HANW002009 == picking_id
+        ).distinct().all()
+        all_order_ids = [order_id[0] for order_id in all_order_ids if order_id[0]]
+        
+        # Check if any orders have carriers already assigned
+        orders_with_carriers = self.db.query(JuHachuHeader).filter(
+            JuHachuHeader.HANR004005.in_(all_order_ids),
+            JuHachuHeader.HANR004A008 != None,
+            JuHachuHeader.HANR004A008 != ''
+        ).count()
+        
+        # Get waybills from picking data
+        waybills = self.get_picking_waybills(picking_id)
+        
+        if not waybills:
+            # If we found orders with carriers assigned, and that's the same as the total order count,
+            # then all orders already have carriers assigned
+            if orders_with_carriers > 0 and orders_with_carriers == len(all_order_ids):
+                logger.info(f"All orders in picking ID {picking_id} already have carriers assigned")
+                return {
+                    "picking_id": picking_id,
+                    "waybill_count": 0,
+                    "selection_details": [],
+                    "success": True,
+                    "message": f"All orders in picking ID {picking_id} already have carriers assigned"
+                }
+            elif orders_with_carriers > 0:
+                # Some orders have carriers assigned, but not all
+                logger.warning(f"No eligible waybills found for picking ID {picking_id}, {orders_with_carriers} of {len(all_order_ids)} orders already have carriers assigned")
+                return {
+                    "picking_id": picking_id,
+                    "waybill_count": 0,
+                    "selection_details": [],
+                    "success": True,
+                    "message": f"No eligible waybills found for picking ID {picking_id}, {orders_with_carriers} of {len(all_order_ids)} orders already have carriers assigned"
+                }
+            else:
+                # No orders have carriers assigned, but there might be other issues
+                logger.warning(f"No waybills could be created from orders in picking ID {picking_id}")
+                return {
+                    "picking_id": picking_id,
+                    "waybill_count": 0,
+                    "selection_details": [],
+                    "success": False,
+                    "message": f"No waybills could be created from orders in picking ID {picking_id}. Check for missing product info or delivery details."
+                }
             
         logger.info(f"Processing {len(waybills)} waybills for picking ID {picking_id}")
         
@@ -809,20 +872,20 @@ class CarrierSelectionService:
                     continue
                 
                 # Update database with selection results
-                logger.info(f"Updating database with carrier selection for waybill {waybill_index}")
-                db_update_success = self.update_database(
-                    waybill_id=waybill["waybill_id"],
-                    parcel_count=int(parcels),
-                    volume=volume,
-                    weight=weight,
-                    size=max_size,
-                    selected_carrier=selected_carrier["carrier_code"]
-                )
+                # logger.info(f"Updating database with carrier selection for waybill {waybill_index}")
+                # db_update_success = self.update_database(
+                #     waybill_id=waybill["waybill_id"],
+                #     parcel_count=int(parcels),
+                #     volume=volume,
+                #     weight=weight,
+                #     size=max_size,
+                #     selected_carrier=selected_carrier["carrier_code"]
+                # )
                 
-                if not db_update_success:
-                    logger.warning(f"Failed to update main database for waybill {waybill_index}")
-                    failed_selections += 1
-                    continue
+                # if not db_update_success:
+                #     logger.warning(f"Failed to update main database for waybill {waybill_index}")
+                #     failed_selections += 1
+                #     continue
                 
                 # Update SmileV database tables with carrier selection
                 logger.info(f"Updating SmileV database tables for waybill {waybill_index}")

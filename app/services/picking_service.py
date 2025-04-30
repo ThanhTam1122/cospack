@@ -38,12 +38,43 @@ def get_pickings(
             PickingDetail.HANC016014.label("shipping_date"),
             Personal.HANM004001.label("staff_code"),
             Customer.HANM001006.label("customer_short_name"),
-            Personal.HANM004003.label("staff_short_name")
+            Personal.HANM004003.label("staff_short_name"),
+            func.count(JuHachuHeader.HANR004005).label("order_count")
         )
         .join(PickingManagement, PickingDetail.HANC016001 == PickingManagement.HANCA11001)
         .join(Customer, PickingDetail.HANC016A003 == Customer.HANM001003)
         .outerjoin(Personal, Customer.HANM001015 == Personal.HANM004001)
-        .filter(PickingManagement.HANCA11002 == "1")
+        # Join to PickingWork to get the document type and order number
+        .join(PickingWork, PickingDetail.HANC016001 == PickingWork.HANW002009)
+        # Join to JuHachuHeader to check for carrier assignment
+        .join(
+            JuHachuHeader,
+            and_(
+                JuHachuHeader.HANR004004 == PickingWork.HANW002001,  # 伝票区分
+                JuHachuHeader.HANR004005 == PickingWork.HANW002002   # 受発注番号
+            )
+        )
+        .filter(
+            PickingManagement.HANCA11002 == "1",
+            # Only include orders where carrier code is None or empty
+            or_(
+                JuHachuHeader.HANR004A008 == None,
+                JuHachuHeader.HANR004A008 == ''
+            )
+        )
+        .group_by(
+            PickingDetail.HANC016001,
+            PickingDetail.HANC016002,
+            PickingDetail.HANC016003,
+            PickingDetail.HANC016A003,
+            PickingDetail.HANC016A004,
+            PickingDetail.HANC016A001,
+            PickingDetail.HANC016A002,
+            PickingDetail.HANC016014,
+            Personal.HANM004001,
+            Customer.HANM001006,
+            Personal.HANM004003
+        )
     )
 
     # Apply filters if provided
@@ -88,7 +119,8 @@ def get_pickings(
             "customer_code_to": row.customer_code_to.strip(),
             "customer_short_name": row.customer_short_name.strip() if row.customer_short_name else "",
             "staff_code": row.staff_code,
-            "staff_short_name": row.staff_short_name.strip() if row.customer_short_name else ""
+            "staff_short_name": row.staff_short_name.strip() if row.staff_short_name else "",
+            "order_count": row.order_count
         })
 
     return {
