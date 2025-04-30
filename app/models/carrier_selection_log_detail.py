@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer
+from sqlalchemy.types import DECIMAL
+from sqlalchemy.dialects.mssql import CHAR
 from app.db.base import Base
 
 class CarrierSelectionLogDetail(Base):
@@ -8,8 +10,16 @@ class CarrierSelectionLogDetail(Base):
     """
     __tablename__ = "HAN10M011SENTEI_LOG_DETAIL"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    HANM011001 = Column("HANM011001", Integer, ForeignKey("HAN10M010SENTEI_LOG.HANM010001"))  # 選定ログコード（親と連携）
-    HANM011002 = Column("HANM011002", Integer, primary_key=True)  # 商品コード（複合PKの一部）
-    HANM011003 = Column("HANM011003", Integer, nullable=False)  # 見積サイズ（cm）
-    HANM011004 = Column("HANM011004", Integer, nullable=False)  # 見積個口数
+    # 選定ログコード - Selection Log Code 
+    HANM011001 = Column("HANM011001", CHAR(10), nullable=False) 
+    
+    # 商品コード - Product Code
+    HANM011002 = Column("HANM011002", CHAR(25), nullable=False)
+    
+    # 見積サイズ（cm） - Estimated Size (cm)
+    HANM011003 = Column("HANM011003", DECIMAL(8, 0), nullable=False)
+    
+    # 見積個口数 - Estimated Parcel Count
+    HANM011004 = Column("HANM011004", DECIMAL(5, 0), nullable=False)
+
+    ID = Column("ID", Integer, nullable=False, primary_key=True)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DECIMAL
+from sqlalchemy import Column, DECIMAL, Integer
 from sqlalchemy.dialects.mssql import CHAR
 from app.db.base import Base
 
@@ -10,10 +10,10 @@ class TransportationFee(Base):
     __tablename__ = "HAN99MA12TRANSPORTATIONFEE"
     
     # 運送会社コード - Transportation Company Code
-    HANMA12001 = Column("HANMA12001", CHAR(8), primary_key=True, nullable=False)
+    HANMA12001 = Column("HANMA12001", CHAR(8), nullable=False)
     
     # 運送エリアコード - Transportation Area Code
-    HANMA12002 = Column("HANMA12002", CHAR(8), primary_key=True, nullable=False)
+    HANMA12002 = Column("HANMA12002", CHAR(8), nullable=False)
     
     # 最大重量（kg） - Maximum Weight in kg
     HANMA12003 = Column("HANMA12003", DECIMAL(5, 0), nullable=True)
@@ -35,6 +35,8 @@ class TransportationFee(Base):
     
     # 料金タイプ - Fee Type
     HANMA12009 = Column("HANMA12009", DECIMAL(1, 0), nullable=False)
+
+    ID = Column("ID", Integer, nullable=False, primary_key=True)
 
     def __repr__(self):
         return f"<TransportationFee {self.HANMA12001}-{self.HANMA12002}>"

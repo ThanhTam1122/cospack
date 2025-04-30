@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from sqlalchemy import and_, or_, desc, func, exists, text
 from typing import Optional, Dict, Any
 
 from app.models.picking import PickingManagement, PickingDetail, PickingWork
 from app.models.customer import Customer
 from app.models.personal import Personal
+from app.models.juhachu import JuHachuHeader
 
 def get_pickings(
     db: Session,
@@ -44,7 +45,7 @@ def get_pickings(
         .outerjoin(Personal, Customer.HANM001015 == Personal.HANM004001)
         .filter(PickingManagement.HANCA11002 == "1")
     )
-    
+
     # Apply filters if provided
     if filters:
         filter_conditions = []
