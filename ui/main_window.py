@@ -93,7 +93,10 @@ class MainWindow(QMainWindow):
         self.spinner.stop()
 
     def on_shipping_success(self, resp):
-        self.show_message("運送会社", "運送会社\n" + resp["message"], QMessageBox.Information if resp["success"] == True else QMessageBox.Critical)
+        if(resp['success'] == True):
+            self.show_message("運送会社", resp["message"], QMessageBox.Information)
+        else:
+            self.show_message("運送会社", "最もチップスの多い会社は見つかりませんでした。", QMessageBox.Critical)
 
     def update_selection(self, row_count, selected_count):
         self.selected_records.setText(f" {row_count} / {selected_count}")
