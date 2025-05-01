@@ -157,6 +157,11 @@ class TableWidget(QTableWidget):
                 result.append(key)
         return result
 
+    def remove_pickings(self, pickings):
+        """Remove pickings from the table."""
+        for picking in pickings:
+            self.selected_items[str(picking['picking_id'])] = -1
+
     def clear_table(self):
         """Clear all rows from the table."""
         self.setRowCount(0)
