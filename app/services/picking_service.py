@@ -55,7 +55,7 @@ def get_pickings(
             )
         )
         .filter(
-            PickingManagement.HANCA11002 == "1",
+            PickingManagement.HANCA11002 == 0,
             # Only include orders where carrier code is None or empty
             or_(
                 JuHachuHeader.HANR004A008 == None,
@@ -94,7 +94,6 @@ def get_pickings(
             ))
 
         if filter_conditions:
-            print(filter_conditions)
             query = query.filter(and_(*filter_conditions))
     
     # Get total count

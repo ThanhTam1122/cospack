@@ -138,10 +138,10 @@ def create_db_engine(max_retries=3, retry_delay=2):
     
     while retries < max_retries:
         try:
-            # First, ensure database and user exist
-            create_database()
-            time.sleep(2)  # Give SQL Server a moment to complete database creation
-            create_user()
+            if settings.ENV == "development":
+                create_database()
+                time.sleep(2)
+                create_user()
             
             # Create engine with proper connection pooling and timeouts
             engine = create_engine(
@@ -181,11 +181,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create base class for declarative models
 Base = declarative_base()
-
-# Import all models here for SQLAlchemy to discover them
-from app.models.picking import PickingManagement, PickingDetail, PickingWork
-from app.models.personal import Personal
-from app.models.customer import Customer
 
 # Dependency
 def get_db():

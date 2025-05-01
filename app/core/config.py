@@ -38,7 +38,6 @@ class Settings(BaseSettings):
         sql_db = self.DEV_SQL_DB if self.ENV == "development" else self.PROD_SQL_DB
         sql_user = self.DEV_SQL_USER if self.ENV == "development" else self.PROD_SQL_USER
         sql_password = self.DEV_SQL_PASSWORD if self.ENV == "development" else self.PROD_SQL_PASSWORD
-        print(sql_db)
         # URL encode the password to handle special characters
         encoded_password = urllib.parse.quote_plus(sql_password)
         
