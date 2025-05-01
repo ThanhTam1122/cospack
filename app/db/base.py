@@ -138,10 +138,10 @@ def create_db_engine(max_retries=3, retry_delay=2):
     
     while retries < max_retries:
         try:
-            if settings.ENV == "development":
-                create_database()
-                time.sleep(2)
-                create_user()
+            # if settings.ENV == "development":
+            #     create_database()
+            #     time.sleep(2)
+            #     create_user()
             
             # Create engine with proper connection pooling and timeouts
             engine = create_engine(
