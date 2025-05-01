@@ -94,8 +94,9 @@ class MainWindow(QMainWindow):
 
     def on_shipping_success(self, resp):
         if(resp['success'] == True):
-            self.get_pickings()
             self.show_message("運送会社", resp["message"], QMessageBox.Information)
+            self.table.remove_pickings(resp['results'])
+            self.get_pickings()
         else:
             self.show_message("運送会社", "最もチップスの多い会社は見つかりませんでした。", QMessageBox.Critical)
 
