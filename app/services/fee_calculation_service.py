@@ -352,7 +352,7 @@ class FeeCalculationService:
             max_size = max(max_size, max_product_size)
             
             # Add to parcels info with size categorization
-            size_category = self.categorize_parcel_size(max_product_size)
+            size_category = self.categorize_parcel_size(max_product_size) # todo categoryに変換せずにサイズをベースに計算して欲しいです
             
             parcels_info.append({
                 "size": size_category,
@@ -476,7 +476,7 @@ class FeeCalculationService:
         elif fee_type == 3:
             # Type 3: Per parcel
             if parcel_count > 0:
-                total_fee = base_fee * parcel_count
+                total_fee = base_fee * parcel_count # todo サイズごとに料金計算して欲しいです
                 logger.info(f"Per-parcel fee: {base_fee} × {parcel_count} = {total_fee}")
             else:
                 # If no parcels, use base fee
@@ -681,7 +681,9 @@ class FeeCalculationService:
             # If delivery_status is 0, it means no collection and no delivery
             if delivery_status == 0:
                 return True
-                
+            # todo 1の場合は集荷無しだけど、配送は有りになります。そのため、出荷日から納期日の間に存在する場合はリードタイムの加算はしなくてよいですが、出荷日が一致する場合は該当会社が利用不可でお願いします。
+
+        # todo 土日の制御は不要です
         # Also check if it's a weekend (Saturday or Sunday)
         if check_date.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
             return True
@@ -859,7 +861,7 @@ class FeeCalculationService:
                 )
                 
                 # Only process carriers with available capacity
-                if has_capacity and has_special_capacity:
+                if has_capacity and has_special_capacity: #todo キャパシティやリードタイムがオーバーしていたら選定対象から外しますが、最安の会社であればログに残して欲しいです
                     # Calculate shipping fee
                     fee = self.calculate_shipping_fee(
                         carrier_code=carrier_code,
@@ -972,7 +974,7 @@ class FeeCalculationService:
                 "message": "Carrier selection successful",
                 "carriers": estimates,
                 "selected_carrier": selected_carrier,
-                "selection_reason": selection_reason
+                "selection_reason": selection_reason # todo ここのメッセージを日本語でお願いしたいです
             }
 
     def to_float(self, value: Any) -> float:

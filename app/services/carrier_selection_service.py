@@ -172,6 +172,7 @@ class CarrierSelectionService:
             log_id = f"{timestamp}{milliseconds}"
             
             # Create log entry
+            # todo すみません、明示していなかったですが、作成日時も保存しておいてもらえますか？
             log = CarrierSelectionLog(
                 HANM010001=log_id,                        # Generated log ID
                 HANM010002=waybill_id,                    # Waybill ID
@@ -426,6 +427,7 @@ class CarrierSelectionService:
             header = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
                 (JuHachuHeader.HANR004A008 == None) | (JuHachuHeader.HANR004A008 == '')
+                # todo HANR004004 伝票区分でのフィルタリングも必要なはずです
             ).first()
             
             if header:
@@ -444,6 +446,7 @@ class CarrierSelectionService:
         for work in picking_works:
             # Skip if the work is already processed or not active
             if work.HANW002A005 == "1":  # Processed status flag
+                # todo HANCA11002ではないでしょうか？
                 logger.info(f"Skipping already processed picking work {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
                 continue
                 
@@ -769,7 +772,7 @@ class CarrierSelectionService:
             logger.info(f"Processing waybill {waybill_index}/{len(waybills)}, customer: '{customer_code}'")
             
             # Find previously used carrier for this customer for consistency
-            previous_carrier = self.find_previous_carrier(customer_code)
+            previous_carrier = self.find_previous_carrier(customer_code) #todo こちら同じ送り状で選定されているものを持ってくる必要があるはずです
             if previous_carrier:
                 logger.info(f"Found previously used carrier '{previous_carrier}' for customer '{customer_code}'")
             else:
