@@ -8,7 +8,6 @@ import sys
 import platform
 import subprocess
 import argparse
-import shutil
 
 
 def get_platform_specific_settings():
