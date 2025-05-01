@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     
     # Database settings
     # Development settings (Docker/SQL Server)
+    # todo 開発環境と本番環境ともにDBへの接続情報は.envに記載して欲しいです。対応いただいた後にパスワード変更いたします。
     DEV_SQL_SERVER: str = os.getenv("DEV_SQL_SERVER", "20.243.151.161")
     DEV_SQL_PORT: str = os.getenv("DEV_SQL_PORT", "1433")
     DEV_SQL_DB: str = os.getenv("DEV_SQL_DB", "FujiSmileV")
