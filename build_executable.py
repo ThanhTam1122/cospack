@@ -80,6 +80,29 @@ def get_platform_specific_settings():
     return settings
 
 
+def get_platform_specific_extensions():
+    """Get platform-specific executable extensions and launcher extensions."""
+    system = platform.system()
+    if system == 'Windows':
+        return {
+            'exe_extension': '.exe',
+            'launcher_extension': '.bat',
+            'executable_name': 'ShippingApp.exe'
+        }
+    elif system == 'Darwin':  # macOS
+        return {
+            'exe_extension': '',
+            'launcher_extension': '.command',
+            'executable_name': 'ShippingApp'
+        }
+    else:  # Linux and others
+        return {
+            'exe_extension': '',
+            'launcher_extension': '.sh',
+            'executable_name': 'ShippingApp'
+        }
+
+
 def get_pyinstaller_command(onefile=False, debug=False):
     """Get the PyInstaller command based on the platform"""
     # Get the absolute path to the main.py file
@@ -107,6 +130,9 @@ def create_spec_file(platform, debug=False):
     # Get the absolute paths
     main_script = os.path.abspath('main.py')
     app_dir = os.path.abspath('app')
+    
+    # Get platform-specific settings
+    platform_ext = get_platform_specific_extensions()
     
     spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 
@@ -137,7 +163,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='ShippingApp',
+    name='ShippingApp{platform_ext["exe_extension"]}',
     debug={debug},
     bootloader_ignore_signals=False,
     strip=False,
@@ -164,10 +190,36 @@ exe = EXE(
     return spec_file
 
 
+def create_launcher_script(platform):
+    """Create a platform-specific launcher script."""
+    platform_ext = get_platform_specific_extensions()
+    launcher_name = f'run_shipping_app{platform_ext["launcher_extension"]}'
+    launcher_path = os.path.join('dist', launcher_name)
+    
+    if platform == 'Windows':
+        with open(launcher_path, 'w') as f:
+            f.write('@echo off\n')
+            f.write('start ShippingApp.exe\n')
+    elif platform == 'Darwin':  # macOS
+        with open(launcher_path, 'w') as f:
+            f.write('#!/bin/bash\n')
+            f.write('open ./ShippingApp\n')
+        os.chmod(launcher_path, 0o755)
+    else:  # Linux and others
+        with open(launcher_path, 'w') as f:
+            f.write('#!/bin/bash\n')
+            f.write('./ShippingApp\n')
+        os.chmod(launcher_path, 0o755)
+    
+    return launcher_path
+
+
 def build_executable(onefile=False, debug=False, no_confirm=False):
     """Build the executable."""
     # Get platform info
     platform_name = platform.system()
+    platform_ext = get_platform_specific_extensions()
+    
     print(f"Building executable for {platform_name}...")
     print(f"Mode: {'Single file' if onefile else 'Directory'}")
     print(f"Debug: {'Enabled' if debug else 'Disabled'}")
@@ -186,17 +238,12 @@ def build_executable(onefile=False, debug=False, no_confirm=False):
         print("Error: PyInstaller build failed")
         sys.exit(1)
 
-    # Create a launcher script for Linux/macOS
-    if platform_name in ['Linux', 'Darwin']:
-        launcher_script = os.path.join('dist', 'run_shipping_app.sh')
-        with open(launcher_script, 'w') as f:
-            f.write('#!/bin/bash\n')
-            f.write('./ShippingApp\n')
-        os.chmod(launcher_script, 0o755)
-        print(f"\nCreated launcher script: {launcher_script}")
+    # Create platform-specific launcher script
+    launcher_path = create_launcher_script(platform_name)
+    print(f"\nCreated launcher script: {launcher_path}")
 
     print("\nExecutable built successfully!")
-    print(f"Output can be found in: {os.path.abspath(os.path.join('dist', 'ShippingApp'))}")
+    print(f"Output can be found in: {os.path.abspath(os.path.join('dist', platform_ext['executable_name']))}")
     print(f"Build type: {'onefile' if onefile else 'directory'}, Platform: {platform_name}")
 
 
