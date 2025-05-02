@@ -89,6 +89,17 @@ The application can be built into a standalone executable using PyInstaller.
 ### Running the Built Application
 
 - **Windows**: Double-click `run_shipping_app.bat` in the `dist` directory
+   sudo dpkg --add-architecture i386
+   sudo apt update
+   sudo apt install wine64 wine32
+
+   export WINEPREFIX=~/wineprefix
+   winecfg
+   
+   wget https://www.python.org/ftp/python/3.9.10/python-3.9.10-amd64.exe
+   wine python-3.9.10-amd64.exe /quiet InstallAllUsers=1 PrependPath=1
+
+   wine python build_executable.py
 - **macOS/Linux**: Run `./run_shipping_app.sh` in the `dist` directory
 
 The executable contains both the PySide UI and FastAPI backend, which will start automatically when you run the application.

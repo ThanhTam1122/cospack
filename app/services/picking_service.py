@@ -56,10 +56,11 @@ def get_pickings(
         )
         .filter(
             PickingManagement.HANCA11002 == 0,
-            # Only include orders where carrier code is None or empty
+            # Only include pickingWorks where carrier code is None or empty
             or_(
-                JuHachuHeader.HANR004A008 == None,
-                JuHachuHeader.HANR004A008 == ''
+                PickingWork.HANW002A003 == None,
+                PickingWork.HANW002A003 == '',
+                PickingWork.HANW002A003 == '00',
             )
         )
         .group_by(
