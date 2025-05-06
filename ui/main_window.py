@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
 
         bottom_layout.addStretch()
 
-        self.shipping_btn = QPushButton("運送会社")
+        self.shipping_btn = QPushButton("選定実行")
         self.shipping_btn.clicked.connect(self.do_shipping)
         bottom_layout.addWidget(self.shipping_btn)
 
