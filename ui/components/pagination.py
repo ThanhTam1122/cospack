@@ -26,13 +26,14 @@ class Pagination(QWidget):
         controls_layout.addWidget(QLabel("カウント:"))
         self.page_size_selector = QComboBox()
         self.page_size_selector.addItems(["15", "25", "50"])
+        self.page_size_selector.setStyleSheet("QComboBox { width: 25px; height: 25px;}")
         self.page_size_selector.setCurrentText(str(self.page_size))
         self.page_size_selector.currentTextChanged.connect(self.change_page_size)
         controls_layout.addWidget(self.page_size_selector)
 
         # Previous button
         self.prev_btn = QPushButton("←")
-        self.prev_btn.setStyleSheet("QPushButton { padding: 0px 0px; width: 25px; }")
+        self.prev_btn.setStyleSheet("QPushButton { padding: 0px 0px; width: 25px; height: 28px;}")
         self.prev_btn.clicked.connect(self.prev_page)
         controls_layout.addWidget(self.prev_btn)
 
@@ -42,7 +43,7 @@ class Pagination(QWidget):
 
         # Next button
         self.next_btn = QPushButton("→")
-        self.next_btn.setStyleSheet("QPushButton { padding: 0px; width: 25px; }")
+        self.next_btn.setStyleSheet("QPushButton { padding: 0px; width: 25px; height: 28px;}")
         self.next_btn.clicked.connect(self.next_page)
         controls_layout.addWidget(self.next_btn)
 
