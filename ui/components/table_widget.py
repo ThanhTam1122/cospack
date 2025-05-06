@@ -18,7 +18,7 @@ class TableWidget(QTableWidget):
         self.setSelectionMode(QTableWidget.NoSelection)
         self.setHorizontalHeaderLabels(["","ID", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
         self.horizontalHeader().setSectionResizeMode(12, QHeaderView.Stretch)
-        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
@@ -40,7 +40,7 @@ class TableWidget(QTableWidget):
         self.checkbox_all.clicked.connect(self.toggle_select_all)
         
         widget=QWidget(self.horizontalHeader())
-        # widget.setGeometry(QRect(0, 0, 38, 40))
+        widget.setGeometry(QRect(0, 0, 38, 40))
         layout=QHBoxLayout(widget)
         layout.setAlignment(Qt.AlignCenter)  # Center the checkbox
         layout.setContentsMargins(0, 0, 0, 0)
