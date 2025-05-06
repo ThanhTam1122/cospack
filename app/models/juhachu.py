@@ -1,6 +1,6 @@
 from sqlalchemy import Column, CHAR
 from sqlalchemy.types import DECIMAL
-from sqlalchemy.dialects.mssql import NVARCHAR, UNIQUEIDENTIFIER, VARCHAR, SMALLDATETIME, BIT
+from sqlalchemy.dialects.mssql import NVARCHAR
 from sqlalchemy.sql.expression import text
 from app.db.base import Base
 import uuid
