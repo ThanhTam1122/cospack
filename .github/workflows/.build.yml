@@ -25,15 +25,15 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --noconfirm --windowed --name "YourApp" src/main.py
+          pyinstaller --noconfirm --windowed --name "CosPack" main.py
 
       - name: Archive app bundle
         run: |
           mkdir -p release
-          cp -R dist/YourApp.app release/
+          cp -R dist/CosPack.app release/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: YourApp-macOS
+          name: CosPack-macOS
           path: release/
