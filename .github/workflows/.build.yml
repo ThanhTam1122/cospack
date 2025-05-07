@@ -130,7 +130,7 @@ jobs:
           chmod +x dist/run_shipping_app.command
 
       - name: Upload built app
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-app
           path: |
