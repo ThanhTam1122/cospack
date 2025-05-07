@@ -22,4 +22,4 @@ class CarrierSelectionLogDetail(Base):
     # 見積個口数 - Estimated Parcel Count
     HANM011004 = Column("HANM011004", DECIMAL(5, 0), nullable=False)
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True)
+    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo こちらも無くしたいです
