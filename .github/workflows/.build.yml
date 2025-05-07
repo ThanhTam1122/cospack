@@ -28,19 +28,35 @@ jobs:
           pip install pyinstaller fastapi uvicorn sqlalchemy pyodbc pydantic pydantic-settings python-multipart requests PySide6
           python -m pip install -r requirements.txt
 
+      - name: Debug workspace structure
+        run: |
+          pwd
+          ls -la
+          find . -type f -name "main.py" | xargs ls -la
+
       - name: Create spec file
         run: |
+          WORKSPACE=$(pwd)
           mkdir -p pyinstaller
           cat > pyinstaller/shipping_app_darwin.spec << EOF
           # -*- mode: python ; coding: utf-8 -*-
+          import os
+          import sys
           
           block_cipher = None
           
+          # Get current directory
+          current_dir = os.path.dirname(os.path.abspath('__file__'))
+          
+          # Get path to main.py in the workspace root
+          main_file = '$WORKSPACE/main.py'
+          app_dir = '$WORKSPACE/app'
+          
           a = Analysis(
-              ['main.py'],
-              pathex=[os.path.abspath('.')],
+              [main_file],
+              pathex=['$WORKSPACE'],
               binaries=[],
-              datas=[("app", "app")],
+              datas=[(app_dir, 'app')],
               hiddenimports=[
                   # FastAPI and dependencies
                   'fastapi', 'fastapi.middleware', 'fastapi.middleware.cors',
@@ -117,6 +133,20 @@ jobs:
               }
           )
           EOF
+
+      - name: Create main entry point if not exists
+        run: |
+          if [ ! -f main.py ]; then
+            echo "Creating main.py as it does not exist"
+            cat > main.py << 'MAINPY'
+          #!/usr/bin/env python3
+          from app.main import app
+          import uvicorn
+          
+          if __name__ == "__main__":
+              uvicorn.run(app, host="0.0.0.0", port=8000)
+          MAINPY
+          fi
 
       - name: Build macOS app with PyInstaller
         run: |
