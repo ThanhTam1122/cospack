@@ -2,27 +2,38 @@ name: Build macOS App
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-mac:
+  build-macos:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12.7'
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install py2app
-    - name: Build app
-      run: python setup.py py2app
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: MyApp
-        path: dist/MyApp.app
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.7'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --noconfirm --windowed --name "YourApp" src/main.py
+
+      - name: Archive app bundle
+        run: |
+          mkdir -p release
+          cp -R dist/YourApp.app release/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YourApp-macOS
+          path: release/
