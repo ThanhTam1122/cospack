@@ -152,7 +152,8 @@ class CarrierSelectionService:
             existing_log = self.db.query(CarrierSelectionLog).filter(
                 CarrierSelectionLog.HANM010002 == waybill_id
             ).first()
-            
+
+            #todo ログは実行のたびに作るようにお願いします。
             if existing_log:
                 logger.info(f"Found existing carrier selection log for waybill {waybill_id}: {existing_log.HANM010001}")
                 # If carrier has changed, update the log entry
@@ -425,7 +426,7 @@ class CarrierSelectionService:
             # Only include orders where carrier code is None or empty
             header = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
-                (JuHachuHeader.HANR004A008 == None) | (JuHachuHeader.HANR004A008 == '')
+                (JuHachuHeader.HANR004A008 == None) | (JuHachuHeader.HANR004A008 == '') #todo developmentでは再実行できるようにお願いします。
             ).first()
             
             if header:
@@ -468,7 +469,7 @@ class CarrierSelectionService:
             # 6-11. Delivery destination info
             dest_name1 = header.HANR004A035 or ""
             dest_name2 = header.HANR004A036 or ""
-            dest_postal = header.HANR004A037 or ""
+            dest_postal = header.HANR004A037 or "" #todo trimが必要そうです。
             dest_addr1 = header.HANR004A039 or ""
             dest_addr2 = header.HANR004A040 or ""
             dest_addr3 = header.HANR004A041 or ""

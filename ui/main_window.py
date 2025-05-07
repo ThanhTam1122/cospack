@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
             self.table.remove_pickings(resp['results'])
             self.get_pickings()
         else:
-            self.show_message("運送会社", "最もチップスの多い会社は見つかりませんでした。", QMessageBox.Critical)
+            self.show_message("運送会社", "選定に失敗しました。", QMessageBox.Critical)
 
     def update_selection(self, row_count, selected_count):
         self.selected_records.setText(f" {row_count} / {selected_count}")
