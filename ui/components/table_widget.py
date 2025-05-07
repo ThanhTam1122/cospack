@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import ( QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView, QCheckBox, QWidget, QHBoxLayout )
-from PySide6.QtCore import Qt, QRect, Signal
+from PySide6.QtCore import Qt, QRect, Signal, QTimer
 
 class TableWidget(QTableWidget):
     
@@ -34,6 +34,7 @@ class TableWidget(QTableWidget):
         self.setStyleSheet("QHeaderView::section { padding: 8px; font-size: 14px;}")
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.clicked.connect(self.on_row_click)
+        QTimer.singleShot(0, lambda: self.setColumnWidth(0, 40))
 
         self.checkbox_all = QCheckBox()
         self.checkbox_all.setChecked(False)
