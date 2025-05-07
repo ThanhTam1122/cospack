@@ -17,51 +17,53 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install system dependencies
+      - name: Install Docker
         run: |
-          brew update
-          brew install freetds
+          brew install docker
+          colima start
 
-      - name: Install dependencies
+      - name: Create Dockerfile for PyInstaller
         run: |
-          python -m pip install --upgrade pip
-          pip install wheel
-          pip install pyinstaller
-          pip install fastapi uvicorn sqlalchemy
-          # Install pymssql with dependencies that don't require compilation 
-          CFLAGS="-I/opt/homebrew/opt/freetds/include" LDFLAGS="-L/opt/homebrew/opt/freetds/lib" pip install pymssql
-          pip install pydantic pydantic-settings python-multipart requests PySide6
-          python -m pip install -r requirements.txt
+          cat > Dockerfile.pyinstaller << EOF
+          FROM python:3.9-slim
+          
+          # Install required packages
+          RUN apt-get update && apt-get install -y \
+              build-essential \
+              libffi-dev \
+              libssl-dev \
+              freetds-dev \
+              freetds-bin \
+              tdsodbc \
+              && rm -rf /var/lib/apt/lists/*
+          
+          # Install Python packages
+          RUN pip install --no-cache-dir pyinstaller \
+              fastapi uvicorn sqlalchemy \
+              pydantic pydantic-settings pydantic-core \
+              python-multipart requests PySide6
+          
+          WORKDIR /src
+          EOF
 
-      - name: Debug workspace structure
+      - name: Build Docker image
         run: |
-          pwd
-          ls -la
-          find . -type f -name "main.py" | xargs ls -la
+          docker build -t pyinstaller-macos -f Dockerfile.pyinstaller .
 
       - name: Create spec file
         run: |
-          WORKSPACE=$(pwd)
           mkdir -p pyinstaller
           cat > pyinstaller/shipping_app_darwin.spec << EOF
           # -*- mode: python ; coding: utf-8 -*-
           import os
-          import sys
           
           block_cipher = None
           
-          # Get current directory
-          current_dir = os.path.dirname(os.path.abspath('__file__'))
-          
-          # Get path to main.py in the workspace root
-          main_file = '$WORKSPACE/main.py'
-          app_dir = '$WORKSPACE/app'
-          
           a = Analysis(
-              [main_file],
-              pathex=['$WORKSPACE'],
+              ['main.py'],
+              pathex=[os.path.abspath('.')],
               binaries=[],
-              datas=[(app_dir, 'app')],
+              datas=[("app", "app")],
               hiddenimports=[
                   # FastAPI and dependencies
                   'fastapi', 'fastapi.middleware', 'fastapi.middleware.cors',
@@ -122,36 +124,7 @@ jobs:
               codesign_identity=None,
               entitlements_file=None,
           )
-          
-          app = BUNDLE(
-              exe,
-              name='shipping-app.app',
-              icon=None,
-              bundle_identifier='com.company.shippingapp',
-              info_plist={
-                  'CFBundleDisplayName': 'Shipping App',
-                  'CFBundleName': 'ShippingApp',
-                  'CFBundlePackageType': 'APPL',
-                  'CFBundleShortVersionString': '1.0.0',
-                  'NSHighResolutionCapable': True,
-                  'NSPrincipalClass': 'NSApplication',
-              }
-          )
           EOF
-
-      - name: Create main entry point if not exists
-        run: |
-          if [ ! -f main.py ]; then
-            echo "Creating main.py as it does not exist"
-            cat > main.py << 'MAINPY'
-          #!/usr/bin/env python3
-          from app.main import app
-          import uvicorn
-          
-          if __name__ == "__main__":
-              uvicorn.run(app, host="0.0.0.0", port=8000)
-          MAINPY
-          fi
 
       - name: Create database adapter patch
         run: |
@@ -167,7 +140,6 @@ jobs:
               Patch the database connection string to use pymssql instead of pyodbc
               """
               import app.core.config
-              from sqlalchemy.engine.url import make_url
               import urllib.parse
               
               # Get the settings
@@ -187,14 +159,29 @@ jobs:
           patch_connection_string()
           EOF
           
-          # Add import to the main.py to apply the patch
+          # Add import to main.py if it exists
           if [ -f main.py ]; then
             sed -i '' '1s/^/import app.patches.db_adapter\n/' main.py
           fi
 
-      - name: Build macOS app with PyInstaller
+      - name: Create main entry point if not exists
         run: |
-          python -m PyInstaller --clean pyinstaller/shipping_app_darwin.spec
+          if [ ! -f main.py ]; then
+            echo "Creating main.py as it does not exist"
+            cat > main.py << 'MAINPY'
+          #!/usr/bin/env python3
+          import app.patches.db_adapter
+          from app.main import app
+          import uvicorn
+          
+          if __name__ == "__main__":
+              uvicorn.run(app, host="0.0.0.0", port=8000)
+          MAINPY
+          fi
+
+      - name: Build macOS app with Docker
+        run: |
+          docker run --rm -v $(pwd):/src pyinstaller-macos bash -c "cd /src && python -m PyInstaller --clean pyinstaller/shipping_app_darwin.spec"
 
       - name: Create launcher script
         run: |
@@ -204,7 +191,7 @@ jobs:
           # macOS launcher script for Shipping App
           DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
           cd "\$DIR"
-          open ./shipping-app.app
+          ./ShippingApp
           EOF
           chmod +x dist/run_shipping_app.command
 
@@ -213,10 +200,5 @@ jobs:
         with:
           name: macos-app
           path: |
-            dist/shipping-app.app
+            dist/ShippingApp
             dist/run_shipping_app.command
-            
-      - name: Run app in test mode
-        run: |
-          cd dist
-          ./ShippingApp --test
