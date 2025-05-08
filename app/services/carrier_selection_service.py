@@ -432,11 +432,6 @@ class CarrierSelectionService:
         
         # Group picking works into waybills based on the specified criteria
         for work in picking_works:
-            # Skip if the work is already processed or not active
-            if work.HANCA11002 == "1":  # Processed status flag
-                logger.info(f"Skipping already processed picking work {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
-                continue
-                
             order_id = work.HANW002002
             header = order_headers.get(order_id)
 

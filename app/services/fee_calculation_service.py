@@ -1133,3 +1133,128 @@ class FeeCalculationService:
         except (ValueError, TypeError):
             logger.warning(f"Failed to convert value '{value}' to integer, using 0 instead")
             return 0 
+
+    def get_available_carriers(self) -> List[Any]:
+        """
+        Get all available transportation companies
+        
+        Returns:
+            List of TransportationCompanyMaster objects
+        """
+        try:
+            carriers = self.db.query(TransportationCompanyMaster).all()
+            logger.info(f"Retrieved {len(carriers)} available carriers")
+            return carriers
+        except Exception as e:
+            logger.error(f"Error fetching available carriers: {str(e)}")
+            return []
+            
+    def get_carrier_weekend_policy(self, carrier_code: str) -> int:
+        """
+        Get weekend processing policy for a carrier (0=no service, 1=delivery only, 2=full service)
+        
+        Args:
+            carrier_code: The carrier code
+            
+        Returns:
+            Weekend policy code (0, 1, or 2), defaults to 0 if not found
+        """
+        try:
+            carrier_sub = self.db.query(TransportationCompanySubMaster).filter(
+                TransportationCompanySubMaster.HANMA03001 == carrier_code
+            ).first()
+            
+            if carrier_sub and hasattr(carrier_sub, 'HANMA03005'):
+                return self.to_int(carrier_sub.HANMA03005)
+            
+            # Default: no weekend service
+            return 0
+        except Exception as e:
+            logger.error(f"Error fetching weekend policy for carrier {carrier_code}: {str(e)}")
+            return 0
+            
+    def calculate_delivery_date(self, carrier_code: str, area_code: int, jis_code: str, 
+                             shipping_date: date) -> Tuple[Optional[date], Optional[int]]:
+        """
+        Calculate the estimated delivery date based on carrier, area, and shipping date
+        
+        Args:
+            carrier_code: Transportation company code
+            area_code: Transportation area code
+            jis_code: JIS code
+            shipping_date: Shipping date
+            
+        Returns:
+            Tuple of (estimated_delivery_date, lead_time) or (None, None) if calculation fails
+        """
+        # Extract prefecture code from JIS code
+        if not jis_code or len(jis_code) < 2:
+            logger.warning(f"Invalid JIS code: {jis_code}")
+            return None, None
+            
+        prefecture_code = jis_code[:2]
+        
+        # Calculate lead time
+        lead_time = self.calculate_lead_time(
+            carrier_code=carrier_code,
+            prefecture_code=prefecture_code,
+            shipping_date=shipping_date
+        )
+        
+        if lead_time is None:
+            logger.warning(f"Could not calculate lead time for carrier {carrier_code}, prefecture {prefecture_code}")
+            return None, None
+            
+        # Calculate estimated delivery date
+        estimated_delivery = shipping_date + timedelta(days=lead_time)
+        
+        return estimated_delivery, lead_time
+        
+    def get_carrier_tariff(self, carrier_code: str, area_code: int) -> Optional[Dict[str, Any]]:
+        """
+        Get tariff information for a carrier and area
+        
+        Args:
+            carrier_code: The carrier code
+            area_code: The transportation area code
+            
+        Returns:
+            Dictionary with tariff information or None if not found
+        """
+        try:
+            # Get transportation fee records for this carrier and area
+            fee_records = self.db.query(TransportationFee).filter(
+                TransportationFee.HANMA12001 == carrier_code,
+                TransportationFee.HANMA12002 == str(area_code)
+            ).all()
+            
+            if not fee_records:
+                logger.warning(f"No tariff found for carrier {carrier_code} and area {area_code}")
+                return None
+                
+            # Process records to create a structured tariff
+            tariff = {
+                "carrier_code": carrier_code,
+                "area_code": area_code,
+                "flat_fee": None,
+                "size_fees": {}
+            }
+            
+            # Process each fee record
+            for record in fee_records:
+                fee_type = self.to_int(record.HANMA12009)
+                base_fee = self.to_float(record.HANMA12008)
+                max_size = self.to_float(record.HANMA12005)
+                
+                # Store size-based fees
+                if max_size > 0:
+                    tariff["size_fees"][max_size] = base_fee
+                # Store flat fee if no size specified
+                elif tariff["flat_fee"] is None:
+                    tariff["flat_fee"] = base_fee
+                
+            return tariff
+            
+        except Exception as e:
+            logger.error(f"Error getting carrier tariff: {str(e)}")
+            return None 
