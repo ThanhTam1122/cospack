@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm (1 volume unit = 30.3cm cube)
 VOLUME_TO_WEIGHT_RATIO = 8  # 1 volume (30.3cm cube) = 8kg
-MAX_SET_PARCEL_COUNT = 5  # Maximum supported set parcel count
+MAX_SET_PARCEL_COUNT = 100  # Maximum supported set parcel count
 
 
 class FeeCalculationService:
@@ -449,31 +449,27 @@ class FeeCalculationService:
             fee_type = self.to_int(selected_record.HANMA12009)
             base_fee = self.to_float(selected_record.HANMA12008)
             volume_unit_price = self.to_float(selected_record.HANMA12006)
-            minus_volume = self.to_float(selected_record.HANMA12007)
+            min_threshold = self.to_float(selected_record.HANMA12007)
             
             parcel_fee = 0.0
             
             if fee_type == 1:
                 # Type 1: Fixed amount
-                parcel_fee = base_fee * parcel_count
-                logger.info(f"Fixed fee for parcel size {parcel_size}: {base_fee} × {parcel_count} = {parcel_fee}")
+                parcel_fee = base_fee
             
             elif fee_type == 2:
                 # Type 2: Volume-based price
                 if volume_unit_price > 0:
-                    parcel_volume = volume / len(parcels) * parcel_count  # Approximation for each parcel's volume
-                    billable_volume = max(0, parcel_volume - minus_volume)
+                    parcel_volume = volume / len(parcels) * parcel_count
+                    billable_volume = max(0, min_threshold - parcel_volume)
                     volume_fee = billable_volume * volume_unit_price
                     parcel_fee = base_fee + volume_fee
-                    logger.info(f"Volume-based fee for parcel size {parcel_size}: {base_fee} + volume({billable_volume} × {volume_unit_price}) = {parcel_fee}")
                 else:
-                    parcel_fee = base_fee * parcel_count
-                    logger.info(f"Volume-based fee defaulted to base fee for size {parcel_size}: {base_fee} × {parcel_count} = {parcel_fee}")
+                    parcel_fee = base_fee
             
             elif fee_type == 3:
                 # Type 3: Per parcel
                 parcel_fee = base_fee * parcel_count
-                logger.info(f"Per-parcel fee for size {parcel_size}: {base_fee} × {parcel_count} = {parcel_fee}")
             
             else:
                 # Unknown fee type, use base fee
