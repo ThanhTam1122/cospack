@@ -13,11 +13,11 @@ class TableWidget(QTableWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setColumnCount(13)
+        self.setColumnCount(12)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QTableWidget.NoSelection)
-        self.setHorizontalHeaderLabels(["","ID", "出荷日付", "ピッキング連番", "ピッキング日", "ピッキング時刻", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
-        self.horizontalHeader().setSectionResizeMode(12, QHeaderView.Stretch)
+        self.setHorizontalHeaderLabels(["","ID", "出荷日付", "ピッキング時刻", "ピッキング日", "受注No_From", "受注No_To", "得意先CD_From", "得意先CD_To", "得意先略称", "担当者CD", "担当者略称"])
+        self.horizontalHeader().setSectionResizeMode(11, QHeaderView.Stretch)
         self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
@@ -28,7 +28,6 @@ class TableWidget(QTableWidget):
         self.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(9, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(10, QHeaderView.ResizeToContents)
-        self.horizontalHeader().setSectionResizeMode(11, QHeaderView.ResizeToContents)
         self.setColumnWidth(0, 40)  # First column (checkbox)
         self.setColumnHidden(1, True)
         self.setStyleSheet("QHeaderView::section { padding: 8px; font-size: 14px;}")
@@ -76,7 +75,6 @@ class TableWidget(QTableWidget):
             self.setItem(row, 9, QTableWidgetItem(str(item.get("customer_short_name", ""))))
             self.setItem(row, 10, QTableWidgetItem(str(item.get("staff_code", ""))))
             self.setItem(row, 11, QTableWidgetItem(str(item.get("staff_short_name", ""))))
-            self.setItem(row, 12, QTableWidgetItem(""))
 
             picking_id = str(item.get("picking_id", ""))
             if picking_id in self.selected_items and self.selected_items[picking_id] == 1:
