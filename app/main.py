@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
-    logger.info(f"Connected to database at {settings.DEV_SQL_SERVER if settings.ENV == 'development' else settings.PROD_SQL_SERVER}")
+    logger.info(f"Connected to database at {settings.DEV_SQL_SERVER if settings.ENV == 'Development' else settings.PROD_SQL_SERVER}")
 except Exception as e:
     logger.error(f"Error creating database tables: {str(e)}")
     raise

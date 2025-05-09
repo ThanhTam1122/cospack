@@ -4,9 +4,13 @@ __pycache__/
 
 # Virtual environment
 venv/
+macbuild/
 env/
+winbuild/
 .venv/
 .env/
+build/
+pyinstaller/
 
 # Environment variables
 .env
