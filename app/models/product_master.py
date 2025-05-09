@@ -148,7 +148,7 @@ class ProductMaster(Base):
     # Conversion quantity settings
     HANM003086 = Column("HANM003086", DECIMAL(1, 0), nullable=False, default=0)  # 換算数量－換算数量使用区分
     HANM003087 = Column("HANM003087", NVARCHAR(4))  # 換算数量－換算数量単位
-    HANM003088 = Column("HANM003088", DECIMAL(5, 6), nullable=False, default=0)  # 換算数量－換算係数
+    HANM003088 = Column("HANM003088", DECIMAL(6, 5), nullable=False, default=0)  # 換算数量－換算係数
     HANM003089 = Column("HANM003089", CHAR(4), nullable=False, default='')  # 換算数量－換算数量計算パターン№
     HANM003090 = Column("HANM003090", DECIMAL(1, 0), nullable=False, default=0)  # 換算数量－換算数量計算区分
     HANM003091 = Column("HANM003091", DECIMAL(9, 0), nullable=False, default=0)  # 換算数量－換算数量計算単位
