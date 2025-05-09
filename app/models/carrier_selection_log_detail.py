@@ -22,11 +22,7 @@ class CarrierSelectionLogDetail(Base):
     # 見積個口数 - Estimated Parcel Count
     HANM011004 = Column("HANM011004", DECIMAL(5, 0), nullable=False)
 
-<<<<<<< HEAD
     # Composite Primary Key
     __table_args__ = (
         PrimaryKeyConstraint('HANM011001', 'HANM011002', name='pk_carrier_selection_log_detail'),
     )
-=======
-    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo こちらも無くしたいです
->>>>>>> main
