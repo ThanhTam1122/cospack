@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer
-from sqlalchemy.dialects.mssql import NVARCHAR
+from sqlalchemy import Column, Integer, NVARCHAR
+from sqlalchemy import PrimaryKeyConstraint
 from app.db.base import Base
 
 class PostalJISMapping(Base):
@@ -9,10 +9,16 @@ class PostalJISMapping(Base):
     """
     __tablename__ = "HAN99MA45POSTALJIS"
     
-    HANMA45001 = Column("HANMA45001", NVARCHAR(8), nullable=False)  # PostalCode (郵便番号)
-    HANMA45002 = Column("HANMA45002", NVARCHAR(5), nullable=False)  # JISCode (JIS規格住所コード)
+    # Postal Code (郵便番号)
+    HANMA45001 = Column("HANMA45001", NVARCHAR(8), nullable=False)
+    
+    # JIS Code (JIS規格住所コード)
+    HANMA45002 = Column("HANMA45002", NVARCHAR(5), nullable=False)
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo idは無くしたいですが、何か必要性がありますでしょうか？
+    # Composite Primary Key
+    __table_args__ = (
+        PrimaryKeyConstraint('HANMA45001', 'HANMA45002', name='pk_postal_jis_mapping'),
+    )
 
     def __repr__(self):
-        return f"<PostalJISMapping {self.HANMA45002} -> {self.HANMA45003}>" 
+        return f"<PostalJISMapping {self.HANMA45001} -> {self.HANMA45002}>"
