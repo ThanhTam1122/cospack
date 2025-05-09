@@ -61,6 +61,7 @@ def get_pickings(
                 PickingWork.HANW002A003 == None,
                 PickingWork.HANW002A003 == '',
                 PickingWork.HANW002A003 == '00',
+                #todo Noneでなくても良いです。環境変数で95の指定をお願いします。また、テスト用にdevelopmentでは再実行できるようにお願いしたいです。
             )
         )
         .group_by(

@@ -12,7 +12,7 @@ class PostalJISMapping(Base):
     HANMA45001 = Column("HANMA45001", NVARCHAR(8), nullable=False)  # PostalCode (郵便番号)
     HANMA45002 = Column("HANMA45002", NVARCHAR(5), nullable=False)  # JISCode (JIS規格住所コード)
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True)
+    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo idは無くしたいですが、何か必要性がありますでしょうか？
 
     def __repr__(self):
         return f"<PostalJISMapping {self.HANMA45002} -> {self.HANMA45003}>" 

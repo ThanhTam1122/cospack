@@ -36,7 +36,7 @@ class TransportationFee(Base):
     # 料金タイプ - Fee Type
     HANMA12009 = Column("HANMA12009", DECIMAL(1, 0), nullable=False)
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True)
+    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo こちらも無くしたいです
 
     def __repr__(self):
         return f"<TransportationFee {self.HANMA12001}-{self.HANMA12002}>"

@@ -15,7 +15,7 @@ class TransportationAreaJISMapping(Base):
     # JIS規格住所コード - JIS Standard Address Code (5 digits)
     HANMA11002 = Column("HANMA11002", CHAR(5), nullable=False)
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True)
+    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo こちらも無くしたいです
 
     def __repr__(self):
         return f"<TransportationAreaJISMapping {self.HANMA11002} -> {self.HANMA11001}>"
