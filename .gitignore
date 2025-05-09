@@ -54,3 +54,7 @@ __pydantic__/
 # OS files
 .DS_Store
 Thumbs.db
+
+build/*
+dist/*
+ui/__pycache__/*

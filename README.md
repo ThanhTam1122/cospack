@@ -75,9 +75,20 @@ The application can be built into a standalone executable using PyInstaller.
    ```
 
 2. Run the build script:
-   ```bash
-   python build_executable.py --onefile --no-confirm
-   ```
+
+    pattern.1 from the beginning
+    ```bash
+    python build_executable.py --onefile --no-confirm
+    ```
+    or
+    ```bash
+    pyinstaller --noconfirm --windowed --clean --onefile --name "CosPacks" main.py 
+    ```
+   
+    pattern.2 from created spec file
+    ```bash
+    pyinstaller CosPacks.spec --noconfirm
+    ```
 
    Options:
    - `--onefile`: Build a single executable file (recommended)
