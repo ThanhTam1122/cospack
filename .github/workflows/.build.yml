@@ -1,0 +1,39 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.7'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --noconfirm --windowed --name "CosPack" main.py
+
+      - name: Archive app bundle
+        run: |
+          mkdir -p release
+          cp -R dist/CosPack.app release/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CosPack-macOS
+          path: release/
