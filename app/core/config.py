@@ -1,51 +1,53 @@
 from pydantic_settings import BaseSettings
-import os
+from functools import lru_cache
 from typing import Optional
 import urllib.parse
-
 
 class Settings(BaseSettings):
     APP_NAME: str = "Shipping App"
     API_PREFIX: str = "/api"
-    DEBUG: bool = bool(os.getenv("DEBUG", False))
-    
+    DEBUG: bool = False
+
     # Environment
-    ENV: str = os.getenv("ENV", "development")  # development or production
-    
-    # Database settings
-    # Development settings (Docker/SQL Server)
-    DEV_SQL_SERVER: str = os.getenv("DEV_SQL_SERVER", "4.216.184.19")
-    DEV_SQL_PORT: str = os.getenv("DEV_SQL_PORT", "1433")
-    DEV_SQL_DB: str = os.getenv("DEV_SQL_DB", "FujiSmileV")
-    DEV_SQL_USER: str = os.getenv("DEV_SQL_USER", "test_user")
-    DEV_SQL_PASSWORD: str = os.getenv("DEV_SQL_PASSWORD", "ZQfgwV7axZPd")
-    
-    # Production settings (Remote server)
-    PROD_SQL_SERVER: str = os.getenv("PROD_SQL_SERVER", "4.216.184.19")
-    PROD_SQL_PORT: str = os.getenv("PROD_SQL_PORT", "1433")
-    PROD_SQL_DB: str = os.getenv("PROD_SQL_DB", "FujiSmileV")
-    PROD_SQL_USER: str = os.getenv("PROD_SQL_USER", "test_user")
-    PROD_SQL_PASSWORD: str = os.getenv("PROD_SQL_PASSWORD", "ZQfgwV7axZPd")
-    
+    ENV: str
+
+    # Development settings
+    DEV_SQL_SERVER: str
+    DEV_SQL_PORT: str
+    DEV_SQL_DB: str
+    DEV_SQL_USER: str
+    DEV_SQL_PASSWORD: str
+
+    # Production settings
+    PROD_SQL_SERVER: str
+    PROD_SQL_PORT: str
+    PROD_SQL_DB: str
+    PROD_SQL_USER: str
+    PROD_SQL_PASSWORD: str
+
     DATABASE_URL: Optional[str] = None
-    
+    SQL_PORT: Optional[str] = None
+    SQL_SERVER: Optional[str] = None
+    SQL_DB: Optional[str] = None
+    SQL_USER: Optional[str] = None
+    SQL_PASSWORD: Optional[str] = None
+
+    class Config:
+        env_file = ".env"
+
     def __init__(self, **data):
         super().__init__(**data)
-        
-        # Get the appropriate settings based on environment
-        sql_server = self.DEV_SQL_SERVER if self.ENV == "development" else self.PROD_SQL_SERVER
-        sql_port = self.DEV_SQL_PORT if self.ENV == "development" else self.PROD_SQL_PORT
-        sql_db = self.DEV_SQL_DB if self.ENV == "development" else self.PROD_SQL_DB
-        sql_user = self.DEV_SQL_USER if self.ENV == "development" else self.PROD_SQL_USER
-        sql_password = self.DEV_SQL_PASSWORD if self.ENV == "development" else self.PROD_SQL_PASSWORD
-        # URL encode the password to handle special characters
-        encoded_password = urllib.parse.quote_plus(sql_password)
-        
-        # Create SQLAlchemy connection URL with proper ODBC configuration
+
+        self.SQL_SERVER = self.DEV_SQL_SERVER if self.ENV == "Development" else self.PROD_SQL_SERVER
+        self.SQL_PORT = self.DEV_SQL_PORT if self.ENV == "Development" else self.PROD_SQL_PORT
+        self.SQL_DB = self.DEV_SQL_DB if self.ENV == "Development" else self.PROD_SQL_DB
+        self.SQL_USER = self.DEV_SQL_USER if self.ENV == "Development" else self.PROD_SQL_USER
+        self.SQL_PASSWORD = self.DEV_SQL_PASSWORD if self.ENV == "Development" else self.PROD_SQL_PASSWORD
+        encoded_password = urllib.parse.quote_plus(self.SQL_PASSWORD)
+
         self.DATABASE_URL = (
-            "mssql+pyodbc://"
-            f"{sql_user}:{encoded_password}@"
-            f"{sql_server}:{sql_port}/{sql_db}"
+            f"mssql+pyodbc://{self.SQL_USER}:{encoded_password}@"
+            f"{self.SQL_SERVER}:{self.SQL_PORT}/{self.SQL_DB}"
             "?driver=ODBC+Driver+17+for+SQL+Server"
             "&TrustServerCertificate=yes"
             "&Encrypt=no"
@@ -58,9 +60,9 @@ class Settings(BaseSettings):
             "&pool_pre_ping=true"
         )
 
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+@lru_cache
+def get_settings():
+    """Read configuration optimization"""
+    return Settings()
 
-
-settings = Settings() 
+settings = get_settings()

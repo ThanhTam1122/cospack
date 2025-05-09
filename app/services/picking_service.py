@@ -89,6 +89,7 @@ def get_pickings(
                 # PickingWork.HANW002014.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016001.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A003.like(f"%{filters['query']}%"),
+                PickingDetail.HANC016003.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A004.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A001.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A002.like(f"%{filters['query']}%")

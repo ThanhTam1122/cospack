@@ -15,20 +15,12 @@ logging.basicConfig(level=logging.INFO)
 def create_database():
     """Create database if it doesn't exist"""
     try:
-        # Get the appropriate settings based on environment
-        sql_server = settings.DEV_SQL_SERVER if settings.ENV == "development" else settings.PROD_SQL_SERVER
-        sql_port = settings.DEV_SQL_PORT if settings.ENV == "development" else settings.PROD_SQL_PORT
-        sql_db = settings.DEV_SQL_DB if settings.ENV == "development" else settings.PROD_SQL_DB
-        sql_user = settings.DEV_SQL_USER if settings.ENV == "development" else settings.PROD_SQL_USER
-        sql_password = settings.DEV_SQL_PASSWORD if settings.ENV == "development" else settings.PROD_SQL_PASSWORD
-
-        # Connect to master database first
         master_conn_str = (
             f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={sql_server},{sql_port};"
+            f"SERVER={settings.SQL_SERVER},{settings.SQL_PORT};"
             f"DATABASE=master;"
-            f"UID={sql_user};"
-            f"PWD={sql_password};"
+            f"UID={settings.SQL_USER};"
+            f"PWD={settings.SQL_PASSWORD};"
             "TrustServerCertificate=yes;"
         )
         
@@ -36,32 +28,32 @@ def create_database():
         cursor = master_conn.cursor()
         
         # Check if database exists
-        cursor.execute(f"SELECT name FROM sys.databases WHERE name = '{sql_db}'")
+        cursor.execute(f"SELECT name FROM sys.databases WHERE name = '{settings.SQL_DB}'")
         if not cursor.fetchone():
-            logger.info(f"Creating database {sql_db}")
+            logger.info(f"Creating database {settings.SQL_DB}")
             # Create database with simple recovery model
             create_db_sql = f"""
-            IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{sql_db}')
+            IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{settings.SQL_DB}')
             BEGIN
-                CREATE DATABASE [{sql_db}]
-                ALTER DATABASE [{sql_db}] SET RECOVERY SIMPLE;
-                ALTER DATABASE [{sql_db}] SET AUTO_CLOSE OFF;
-                ALTER DATABASE [{sql_db}] SET MULTI_USER;
+                CREATE DATABASE [{settings.SQL_DB}]
+                ALTER DATABASE [{settings.SQL_DB}] SET RECOVERY SIMPLE;
+                ALTER DATABASE [{settings.SQL_DB}] SET AUTO_CLOSE OFF;
+                ALTER DATABASE [{settings.SQL_DB}] SET MULTI_USER;
             END
             """
             cursor.execute(create_db_sql)
-            logger.info(f"Database {sql_db} created successfully")
+            logger.info(f"Database {settings.SQL_DB} created successfully")
             
             # Give SQL Server a moment to initialize the database
             time.sleep(5)
         else:
-            logger.info(f"Database {sql_db} already exists")
+            logger.info(f"Database {settings.SQL_DB} already exists")
             
             # Ensure database is properly configured
             cursor.execute(f"""
-            ALTER DATABASE [{sql_db}] SET RECOVERY SIMPLE;
-            ALTER DATABASE [{sql_db}] SET AUTO_CLOSE OFF;
-            ALTER DATABASE [{sql_db}] SET MULTI_USER;
+            ALTER DATABASE [{settings.SQL_DB}] SET RECOVERY SIMPLE;
+            ALTER DATABASE [{settings.SQL_DB}] SET AUTO_CLOSE OFF;
+            ALTER DATABASE [{settings.SQL_DB}] SET MULTI_USER;
             """)
         
         cursor.close()
@@ -73,15 +65,8 @@ def create_database():
 
 def create_user():
     """Create user if it doesn't exist"""
-    # Get the appropriate settings based on environment
-    sql_server = settings.DEV_SQL_SERVER if settings.ENV == "development" else settings.PROD_SQL_SERVER
-    sql_port = settings.DEV_SQL_PORT if settings.ENV == "development" else settings.PROD_SQL_PORT
-    sql_db = settings.DEV_SQL_DB if settings.ENV == "development" else settings.PROD_SQL_DB
-    sql_user = settings.DEV_SQL_USER if settings.ENV == "development" else settings.PROD_SQL_USER
-    sql_password = settings.DEV_SQL_PASSWORD if settings.ENV == "development" else settings.PROD_SQL_PASSWORD
-
     # Skip user creation for sa account
-    if sql_user.lower() == 'sa':
+    if settings.SQL_USER.lower() == 'sa':
         logger.info("Using sa account - skipping user creation")
         return
         
@@ -93,29 +78,29 @@ def create_user():
             # Connect to the new database
             db_conn_str = (
                 f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                f"SERVER={sql_server},{sql_port};"
-                f"DATABASE={sql_db};"
-                f"UID={sql_user};"
-                f"PWD={sql_password};"
+                f"SERVER={settings.SQL_SERVER},{settings.SQL_PORT};"
+                f"DATABASE={settings.SQL_DB};"
+                f"UID={settings.SQL_USER};"
+                f"PWD={settings.SQL_PASSWORD};"
                 "TrustServerCertificate=yes;"
             )
             
-            logger.info(f"Setting up user in database: {sql_db}")
+            logger.info(f"Setting up user in database: {settings.SQL_DB}")
             db_conn = pyodbc.connect(db_conn_str, autocommit=True)
             cursor = db_conn.cursor()
             
             # Check if login exists first
-            cursor.execute(f"SELECT name FROM sys.server_principals WHERE name = '{sql_user}'")
+            cursor.execute(f"SELECT name FROM sys.server_principals WHERE name = '{settings.SQL_USER}'")
             if not cursor.fetchone():
-                logger.info(f"Creating login {sql_user}")
-                cursor.execute(f"CREATE LOGIN [{sql_user}] WITH PASSWORD = '{sql_password}'")
+                logger.info(f"Creating login {settings.SQL_USER}")
+                cursor.execute(f"CREATE LOGIN [{settings.SQL_USER}] WITH PASSWORD = '{settings.SQL_PASSWORD}'")
             
             # Then check if user exists
-            cursor.execute(f"SELECT name FROM sys.database_principals WHERE name = '{sql_user}'")
+            cursor.execute(f"SELECT name FROM sys.database_principals WHERE name = '{settings.SQL_USER}'")
             if not cursor.fetchone():
-                logger.info(f"Creating user {sql_user}")
-                cursor.execute(f"CREATE USER [{sql_user}] FOR LOGIN [{sql_user}]")
-                cursor.execute(f"ALTER ROLE db_owner ADD MEMBER [{sql_user}]")
+                logger.info(f"Creating user {settings.SQL_USER}")
+                cursor.execute(f"CREATE USER [{settings.SQL_USER}] FOR LOGIN [{settings.SQL_USER}]")
+                cursor.execute(f"ALTER ROLE db_owner ADD MEMBER [{settings.SQL_USER}]")
             
             cursor.close()
             db_conn.close()
@@ -138,7 +123,7 @@ def create_db_engine(max_retries=3, retry_delay=2):
     
     while retries < max_retries:
         try:
-            # if settings.ENV == "development":
+            # if settings.ENV == "Development":
             #     create_database()
             #     time.sleep(2)
             #     create_user()
@@ -158,7 +143,7 @@ def create_db_engine(max_retries=3, retry_delay=2):
             # Test the connection
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            logger.info(f"Successfully connected to {settings.ENV} database at {settings.DEV_SQL_SERVER if settings.ENV == 'development' else settings.PROD_SQL_SERVER}")
+            logger.info(f"Successfully connected to {settings.ENV} database at {settings.SQL_SERVER}")
             return engine
             
         except Exception as e:

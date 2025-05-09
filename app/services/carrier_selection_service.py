@@ -86,21 +86,6 @@ class CarrierSelectionService:
         # Use the fee calculator service to get detailed product metrics
         return self.fee_calculator.calculate_package_metrics(products)
 
-    def calculate_shipping_fee(self, carrier_code: str, area_code: int, 
-                             parcels: int, volume: float, weight: float, size: float) -> Optional[float]:
-        """
-        Calculate shipping fee based on carrier, area, and package metrics
-        """
-        # Use the fee calculator service to calculate shipping fee
-        return self.fee_calculator.calculate_shipping_fee(
-            carrier_code=carrier_code,
-            area_code=area_code,
-            parcels=parcels,
-            volume=volume,
-            weight=weight,
-            size=size
-        )
-
     def check_carrier_capacity(self, carrier_code: str, volume: float, weight: float) -> bool:
         """
         Check if the carrier has enough capacity for this shipment
@@ -181,6 +166,7 @@ class CarrierSelectionService:
                 HANM010006=selected_carrier,              # Selected carrier 
                 HANM010007=cheapest_carrier,              # Cheapest carrier
                 HANM010008=reason,                        # Selection reason
+                HAN10M010_INS= datetime.now().strftime("%Y%m%d%H%M%S%f")[:20]
             )
             
             self.db.add(log)
@@ -423,9 +409,13 @@ class CarrierSelectionService:
         order_headers = {}
         for order_id in order_ids:
             # Only include orders where carrier code is None or empty
+            # Also filter by document type as requested
             header = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
-                (JuHachuHeader.HANR004A008 == None) | (JuHachuHeader.HANR004A008 == '')
+                (JuHachuHeader.HANR004A008 == None) | 
+                (JuHachuHeader.HANR004A008 == '') | 
+                (JuHachuHeader.HANR004A008 == '00'),
+                JuHachuHeader.HANR004004.in_(['1', '2', '3'])
             ).first()
             
             if header:
@@ -442,11 +432,6 @@ class CarrierSelectionService:
         
         # Group picking works into waybills based on the specified criteria
         for work in picking_works:
-            # Skip if the work is already processed or not active
-            if work.HANW002A005 == "1":  # Processed status flag
-                logger.info(f"Skipping already processed picking work {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
-                continue
-                
             order_id = work.HANW002002
             header = order_headers.get(order_id)
 
@@ -661,6 +646,45 @@ class CarrierSelectionService:
             logger.error(f"Error in find_previous_carrier: {str(e)}")
             return None
 
+    def find_previous_carrier_for_waybill(self, waybill: Dict[str, Any]) -> Optional[str]:
+        """
+        Find the previously used carrier for a waybill with the same destinations
+        
+        Args:
+            waybill: Waybill information including customer_code, postal_code, etc.
+            
+        Returns:
+            The carrier code, or None if not found
+        """
+        try:
+            customer_code = waybill.get("customer_code", "")
+            postal_code = waybill.get("postal_code", "")
+            prefecture_code = waybill.get("prefecture_code", "")
+            
+            if not customer_code or not postal_code:
+                return None
+                
+            # First, try to find recent orders with the same shipping details
+            recent_headers = self.db.query(JuHachuHeader).filter(
+                JuHachuHeader.HANR004002 == customer_code,   # Same customer
+                JuHachuHeader.HANR004A037 == postal_code,    # Same postal code
+                JuHachuHeader.HANR004A031 == prefecture_code, # Same prefecture
+                JuHachuHeader.HANR004A008 != None,           # Has a carrier assigned
+                JuHachuHeader.HANR004A008 != ""              # Non-empty carrier code
+            ).order_by(
+                desc(JuHachuHeader.HANR004UPD)               # Most recent by update date
+            ).limit(10).all()
+            
+            if recent_headers and len(recent_headers) > 0:
+                # Return the most recently used carrier for the same destination
+                return recent_headers[0].HANR004A008
+                
+            # If no match found, fall back to the previous method
+            return self.find_previous_carrier(customer_code)
+        except Exception as e:
+            logger.error(f"Error in find_previous_carrier_for_waybill: {str(e)}")
+            return None
+
     def select_carriers_for_picking(self, picking_id: int) -> Dict[str, Any]:
         """
         Select optimal carriers for all waybills in a picking
@@ -768,12 +792,18 @@ class CarrierSelectionService:
             customer_code = waybill.get("customer_code", "")
             logger.info(f"Processing waybill {waybill_index}/{len(waybills)}, customer: '{customer_code}'")
             
-            # Find previously used carrier for this customer for consistency
-            previous_carrier = self.find_previous_carrier(customer_code)
+            # Find previously used carrier for this waybill's destination for consistency
+            previous_carrier = self.find_previous_carrier_for_waybill(waybill)
             if previous_carrier:
-                logger.info(f"Found previously used carrier '{previous_carrier}' for customer '{customer_code}'")
+                logger.info(f"Found previously used carrier '{previous_carrier}' for waybill destination")
             else:
-                logger.info(f"No previous carrier found for customer '{customer_code}'")
+                logger.info(f"No previous carrier found for waybill destination, checking customer history")
+                # Fall back to customer history if no exact destination match
+                previous_carrier = self.find_previous_carrier(waybill.get("customer_code", ""))
+                if previous_carrier:
+                    logger.info(f"Found previously used carrier '{previous_carrier}' from customer history")
+                else:
+                    logger.info(f"No previous carrier found for customer '{waybill.get('customer_code', '')}'")
                 
             # Get area code from JIS code or postal code
             jis_code = waybill.get("jis_code")
