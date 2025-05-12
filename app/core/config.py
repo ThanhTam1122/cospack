@@ -2,6 +2,14 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional
 import urllib.parse
+import sys
+import os
+
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(__file__)
+env_path = os.path.join(base_path, ".env")
 
 class Settings(BaseSettings):
     APP_NAME: str = "Shipping App"
@@ -35,7 +43,7 @@ class Settings(BaseSettings):
     CARRIER_UNASSIGNED_CODE: str = "95"
 
     class Config:
-        env_file = ".env"
+        env_file = env_path
 
     def __init__(self, **data):
         super().__init__(**data)

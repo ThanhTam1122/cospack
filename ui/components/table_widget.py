@@ -115,13 +115,13 @@ class TableWidget(QTableWidget):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(True)
-                        self.selected_items[self.item(row, 1).text()] = 1
+                        self.selected_items[self.item(row, 2).text()] = 1
             else:
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(False)
-                        self.selected_items[self.item(row, 1).text()] = 0
+                        self.selected_items[self.item(row, 2).text()] = 0
         self.update_selected_count()
 
     def update_selection (self):
@@ -133,13 +133,13 @@ class TableWidget(QTableWidget):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(True)
-                        self.selected_items[self.item(row, 1).text()] = 1
+                        self.selected_items[self.item(row, 2).text()] = 1
             else:
                 for i in range(self.columnCount()):
                     item = self.item(row, i)
                     if item:
                         item.setSelected(False)
-                        self.selected_items[self.item(row, 1).text()] = 0
+                        self.selected_items[self.item(row, 2).text()] = 0
         
         self.update_selected_count()
 
