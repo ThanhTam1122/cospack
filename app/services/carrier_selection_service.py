@@ -133,22 +133,6 @@ class CarrierSelectionService:
             The log ID (selection log code)
         """
         try:
-            # Check if we already have a selection log for this waybill
-            existing_log = self.db.query(CarrierSelectionLog).filter(
-                CarrierSelectionLog.HANM010002 == waybill_id
-            ).first()
-            
-            if existing_log:
-                logger.info(f"Found existing carrier selection log for waybill {waybill_id}: {existing_log.HANM010001}")
-                # If carrier has changed, update the log entry
-                if existing_log.HANM010006 != selected_carrier:
-                    logger.info(f"Updating carrier from {existing_log.HANM010006} to {selected_carrier}")
-                    existing_log.HANM010006 = selected_carrier
-                    existing_log.HANM010007 = cheapest_carrier
-                    existing_log.HANM010008 = reason
-                    self.db.commit()
-                return existing_log.HANM010001
-            
             # Generate a unique ID for the selection log code (HANM010001)
             # Format: YYMMDDNNNN where NNNN is a sequence number (here we use milliseconds)
             now = datetime.now()
@@ -410,13 +394,19 @@ class CarrierSelectionService:
         for order_id in order_ids:
             # Only include orders where carrier code is None or empty
             # Also filter by document type as requested
-            header = self.db.query(JuHachuHeader).filter(
+            query = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
-                (JuHachuHeader.HANR004A008 == None) | 
-                (JuHachuHeader.HANR004A008 == '') | 
-                (JuHachuHeader.HANR004A008 == '00'),
                 JuHachuHeader.HANR004004.in_(['1', '2', '3'])
-            ).first()
+            )
+
+            if not settings.ENV == "Development":
+                query = query.filter(
+                    (JuHachuHeader.HANR004A008 == None) |
+                    (JuHachuHeader.HANR004A008 == '') |
+                    (JuHachuHeader.HANR004A008 == '00')
+                )
+
+            header = query.first()
             
             if header:
                 order_headers[order_id] = header
@@ -453,7 +443,7 @@ class CarrierSelectionService:
             # 6-11. Delivery destination info
             dest_name1 = header.HANR004A035 or ""
             dest_name2 = header.HANR004A036 or ""
-            dest_postal = header.HANR004A037 or ""
+            dest_postal = (header.HANR004A037 or "").strip()
             dest_addr1 = header.HANR004A039 or ""
             dest_addr2 = header.HANR004A040 or ""
             dest_addr3 = header.HANR004A041 or ""
@@ -678,9 +668,6 @@ class CarrierSelectionService:
             if recent_headers and len(recent_headers) > 0:
                 # Return the most recently used carrier for the same destination
                 return recent_headers[0].HANR004A008
-                
-            # If no match found, fall back to the previous method
-            return self.find_previous_carrier(customer_code)
         except Exception as e:
             logger.error(f"Error in find_previous_carrier_for_waybill: {str(e)}")
             return None
@@ -798,12 +785,6 @@ class CarrierSelectionService:
                 logger.info(f"Found previously used carrier '{previous_carrier}' for waybill destination")
             else:
                 logger.info(f"No previous carrier found for waybill destination, checking customer history")
-                # Fall back to customer history if no exact destination match
-                previous_carrier = self.find_previous_carrier(waybill.get("customer_code", ""))
-                if previous_carrier:
-                    logger.info(f"Found previously used carrier '{previous_carrier}' from customer history")
-                else:
-                    logger.info(f"No previous carrier found for customer '{waybill.get('customer_code', '')}'")
                 
             # Get area code from JIS code or postal code
             jis_code = waybill.get("jis_code")
