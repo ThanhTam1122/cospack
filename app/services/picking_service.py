@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from typing import Optional, Dict, Any
 
+from app.core.config import settings
+
 from app.models.picking import PickingManagement, PickingDetail, PickingWork
 from app.models.customer import Customer
 from app.models.personal import Personal

@@ -7,6 +7,8 @@ import requests
 import logging
 from decimal import Decimal
 
+from app.core.config import settings
+
 from app.models.picking import PickingManagement, PickingDetail, PickingWork
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.carrier_selection_log import CarrierSelectionLog
@@ -780,6 +782,7 @@ class CarrierSelectionService:
             logger.info(f"Processing waybill {waybill_index}/{len(waybills)}, customer: '{customer_code}'")
             
             # Find previously used carrier for this waybill's destination for consistency
+            print(f"waybill: {waybill}")
             previous_carrier = self.find_previous_carrier_for_waybill(waybill)
             if previous_carrier:
                 logger.info(f"Found previously used carrier '{previous_carrier}' for waybill destination")
