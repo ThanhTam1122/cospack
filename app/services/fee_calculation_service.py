@@ -461,7 +461,7 @@ class FeeCalculationService:
                 # Type 2: Volume-based price
                 if volume_unit_price > 0:
                     parcel_volume = volume / len(parcels) * parcel_count
-                    billable_volume = max(0, min_threshold - parcel_volume)
+                    billable_volume = max(0, parcel_volume - min_threshold)
                     volume_fee = billable_volume * volume_unit_price
                     parcel_fee = base_fee + volume_fee
                 else:
@@ -484,61 +484,6 @@ class FeeCalculationService:
             
         logger.info(f"Final shipping fee across all parcel sizes: {total_fee}")
         return total_fee
-
-    def prepare_parcels_for_fee_calculation(self, parcels_or_size_data):
-        """
-        Prepare parcels data for fee calculation based on the input format.
-        
-        Args:
-            parcels_or_size_data: Either a list of parcels with size data, 
-                                 or a single size value, or a list of sizes
-        
-        Returns:
-            List of dictionaries with standardized parcel data
-            Each dict includes: {"size": size_in_cm, "count": quantity}
-        """
-        if not parcels_or_size_data:
-            return []
-            
-        # If already in the correct format
-        if isinstance(parcels_or_size_data, list) and isinstance(parcels_or_size_data[0], dict) and "size" in parcels_or_size_data[0]:
-            return parcels_or_size_data
-            
-        # If a single size value is provided
-        if isinstance(parcels_or_size_data, (int, float)):
-            return [{"size": parcels_or_size_data, "count": 1}]
-            
-        # If a list of sizes is provided
-        if isinstance(parcels_or_size_data, list):
-            if all(isinstance(item, (int, float)) for item in parcels_or_size_data):
-                return [{"size": size, "count": 1} for size in parcels_or_size_data]
-                
-            # If a list of objects with different properties
-            result = []
-            for parcel in parcels_or_size_data:
-                if isinstance(parcel, dict):
-                    # Look for size information in various possible keys
-                    size = None
-                    for key in ["size", "parcel_size", "three_sides_sum"]:
-                        if key in parcel:
-                            size = parcel[key]
-                            break
-                            
-                    # Look for count information
-                    count = 1
-                    for key in ["count", "quantity", "parcel_count"]:
-                        if key in parcel and parcel[key]:
-                            count = parcel[key]
-                            break
-                            
-                    if size:
-                        result.append({"size": size, "count": count})
-                        
-            return result if result else [{"size": 0, "count": 1}]
-            
-        # Default fallback
-        logger.warning(f"Unexpected parcel data format: {type(parcels_or_size_data)}")
-        return [{"size": 0, "count": 1}]
 
     def check_carrier_capacity(self, carrier_code: str, volume: float, weight: float) -> bool:
         """
@@ -686,27 +631,6 @@ class FeeCalculationService:
             if is_holiday_date:
                 # If it's a holiday, the carrier is not available
                 return False, "休日のため利用不可"
-            
-            # Check if the date is a weekend (Saturday=5, Sunday=6)
-            is_weekend = check_date.weekday() >= 5
-            
-            if is_weekend:
-                # Get carrier weekend policy
-                weekend_policy = self.get_carrier_weekend_policy(carrier_code)
-                
-                # If weekend policy is 0, carrier doesn't operate on weekends
-                if weekend_policy == 0:
-                    return False, "週末のため利用不可"
-                # If weekend policy is 1, carrier doesn't pick up but delivers on weekends
-                elif weekend_policy == 1:
-                    # For shipping date, carrier is not available
-                    return False, "週末は集荷無しのため利用不可"
-                # If weekend policy is 2, carrier operates normally on weekends
-                elif weekend_policy == 2:
-                    return True, ""
-            else:
-                # Weekday - carrier is available
-                return True, ""
             
             return True, ""
         except Exception as e:
@@ -889,7 +813,6 @@ class FeeCalculationService:
                     # Skip carriers where delivery date calculation fails
                     continue
                 
-                # Check capacity for shipping date (no weekend control needed)
                 has_capacity = self.check_carrier_capacity(carrier_code, volume, weight)
                 
                 # Check special capacity (if any) for the shipping date
@@ -898,7 +821,7 @@ class FeeCalculationService:
                 # Check if the carriers can meet the delivery deadline
                 meets_deadline = est_delivery_date <= delivery_deadline
                 
-                # Determine if carrier is available for selection (removed weekend check)
+                # Determine if carrier is available for selection
                 is_available = has_capacity and has_special_capacity and meets_deadline
                 
                 carrier_results.append({
@@ -1144,30 +1067,6 @@ class FeeCalculationService:
         except Exception as e:
             logger.error(f"Error fetching available carriers: {str(e)}")
             return []
-            
-    def get_carrier_weekend_policy(self, carrier_code: str) -> int:
-        """
-        Get weekend processing policy for a carrier (0=no service, 1=delivery only, 2=full service)
-        
-        Args:
-            carrier_code: The carrier code
-            
-        Returns:
-            Weekend policy code (0, 1, or 2), defaults to 0 if not found
-        """
-        try:
-            carrier_sub = self.db.query(TransportationCompanySubMaster).filter(
-                TransportationCompanySubMaster.HANMA03001 == carrier_code
-            ).first()
-            
-            if carrier_sub and hasattr(carrier_sub, 'HANMA03005'):
-                return self.to_int(carrier_sub.HANMA03005)
-            
-            # Default: no weekend service
-            return 0
-        except Exception as e:
-            logger.error(f"Error fetching weekend policy for carrier {carrier_code}: {str(e)}")
-            return 0
             
     def calculate_delivery_date(self, carrier_code: str, area_code: int, jis_code: str, 
                              shipping_date: date) -> Tuple[Optional[date], Optional[int]]:

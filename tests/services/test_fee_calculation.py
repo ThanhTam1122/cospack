@@ -189,35 +189,6 @@ class TestFeeCalculationService(unittest.TestCase):
             }
         }.get(product_code))
     
-    def test_prepare_parcels_for_fee_calculation(self):
-        """Test preparing parcels information for fee calculation"""
-        products = [
-            {"product_code": 1001, "quantity": 15},  # 1 full box (10) + 5 loose items
-            {"product_code": 1002, "quantity": 8}    # 1 full box (5) + 3 loose items
-        ]
-        
-        parcels = self.service.prepare_parcels_for_fee_calculation(products)
-        
-        # Should have 4 different sized parcels
-        self.assertEqual(len(parcels), 4)
-        
-        # Check that we have the expected sizes and counts
-        size_counts = {parcel["size"]: parcel["count"] for parcel in parcels}
-        
-        # Full box of product 1 (60cm total size)
-        self.assertEqual(size_counts.get(60), 1)
-        
-        # Partial box of product 1 (should be smaller than 60cm)
-        partial_size1 = 30 + 20 + (10 * (5/10))  # length + width + adjusted_height
-        self.assertEqual(size_counts.get(partial_size1), 1)
-        
-        # Full box of product 2 (90cm total size)
-        self.assertEqual(size_counts.get(90), 1)
-        
-        # Partial box of product 2
-        partial_size2 = 40 + 30 + (20 * (3/5))  # length + width + adjusted_height
-        self.assertEqual(size_counts.get(partial_size2), 1)
-    
     def test_calculate_shipping_fee_sagawa(self):
         """Test calculating shipping fee for Sagawa Express (per-parcel pricing)"""
         # Create test parcels with different sizes

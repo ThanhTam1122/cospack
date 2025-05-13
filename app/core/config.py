@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     SQL_USER: Optional[str] = None
     SQL_PASSWORD: Optional[str] = None
 
+    CARRIER_UNASSIGNED_CODE: str = "95"
+
     class Config:
         env_file = env_path
 

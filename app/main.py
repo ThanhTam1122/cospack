@@ -42,7 +42,7 @@ def root():
     return {
         "message": "Welcome to the Shipping API",
         "environment": settings.ENV,
-        "database": settings.DEV_SQL_SERVER if settings.ENV == "development" else settings.PROD_SQL_SERVER
+        "database": settings.DEV_SQL_SERVER if settings.ENV == "Development" else settings.PROD_SQL_SERVER
     }
 
 # This block is only used when running app/main.py directly

@@ -1,6 +1,9 @@
+import os
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, func, exists, text
+from sqlalchemy import and_, or_, desc, func
 from typing import Optional, Dict, Any
+
+from app.core.config import settings
 
 from app.models.picking import PickingManagement, PickingDetail, PickingWork
 from app.models.customer import Customer
@@ -15,16 +18,19 @@ def get_pickings(
 ) -> Dict[str, Any]:
     """
     Get pickings with customer and staff information
-    
+
     Args:
         db: Database session
         skip: Number of records to skip (pagination)
         limit: Number of records to return
         filters: Optional filters to apply to the query
-        
+
     Returns:
         Dict with pickings (list of pickings) and total count
     """
+    env = os.getenv("ENV", "production")  # default to production
+    excluded_carrier_code = os.getenv("CARRIER_CODE_TO_EXCLUDE", "95")
+
     # Create the base query joining all needed tables
     query = (
         db.query(
@@ -44,50 +50,49 @@ def get_pickings(
         .join(PickingManagement, PickingDetail.HANC016001 == PickingManagement.HANCA11001)
         .join(Customer, PickingDetail.HANC016A003 == Customer.HANM001003)
         .outerjoin(Personal, Customer.HANM001015 == Personal.HANM004001)
-        # Join to PickingWork to get the document type and order number
         .join(PickingWork, PickingDetail.HANC016001 == PickingWork.HANW002009)
-        # Join to JuHachuHeader to check for carrier assignment
         .join(
             JuHachuHeader,
             and_(
-                JuHachuHeader.HANR004004 == PickingWork.HANW002001,  # 伝票区分
-                JuHachuHeader.HANR004005 == PickingWork.HANW002002   # 受発注番号
+                JuHachuHeader.HANR004004 == PickingWork.HANW002001,
+                JuHachuHeader.HANR004005 == PickingWork.HANW002002
             )
         )
         .filter(
-            PickingManagement.HANCA11002 == 0,
-            # Only include pickingWorks where carrier code is None or empty
+            PickingManagement.HANCA11002 == 0
+        )
+    )
+
+    # Carrier code exclusion logic
+    if not settings.ENV == "Development":
+        query = query.filter(
             or_(
-                PickingWork.HANW002A003 == None,
-                PickingWork.HANW002A003 == '',
-                PickingWork.HANW002A003 == '00',
-                #todo Noneでなくても良いです。環境変数で95の指定をお願いします。また、テスト用にdevelopmentでは再実行できるようにお願いしたいです。
+                PickingWork.HANW002A003 == settings.CARRIER_UNASSIGNED_CODE
             )
         )
-        .group_by(
-            PickingDetail.HANC016001,
-            PickingDetail.HANC016002,
-            PickingDetail.HANC016003,
-            PickingDetail.HANC016A003,
-            PickingDetail.HANC016A004,
-            PickingDetail.HANC016A001,
-            PickingDetail.HANC016A002,
-            PickingDetail.HANC016014,
-            Personal.HANM004001,
-            Customer.HANM001006,
-            Personal.HANM004003
-        )
+
+    query = query.group_by(
+        PickingDetail.HANC016001,
+        PickingDetail.HANC016002,
+        PickingDetail.HANC016003,
+        PickingDetail.HANC016A003,
+        PickingDetail.HANC016A004,
+        PickingDetail.HANC016A001,
+        PickingDetail.HANC016A002,
+        PickingDetail.HANC016014,
+        Personal.HANM004001,
+        Customer.HANM001006,
+        Personal.HANM004003
     )
 
     # Apply filters if provided
     if filters:
         filter_conditions = []
-        
+
         if filters.get("query"):
             filter_conditions.append(or_(
                 Customer.HANM001006.like(f"%{filters['query']}%"),
                 Personal.HANM004003.like(f"%{filters['query']}%"),
-                # PickingWork.HANW002014.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016001.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016A003.like(f"%{filters['query']}%"),
                 PickingDetail.HANC016003.like(f"%{filters['query']}%"),
@@ -98,15 +103,16 @@ def get_pickings(
 
         if filter_conditions:
             query = query.filter(and_(*filter_conditions))
-    
+
     # Get total count
     total = query.count()
+
     # Apply pagination
     query = query.order_by(desc(PickingDetail.HANC016001)).offset(skip).limit(limit)
-    
+
     # Execute query
     result = query.all()
-    
+
     # Format the results
     pickings = []
     for row in result:
@@ -128,4 +134,4 @@ def get_pickings(
     return {
         "pickings": pickings,
         "total": total
-    } 
+    }

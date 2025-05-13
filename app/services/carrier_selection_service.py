@@ -7,6 +7,8 @@ import requests
 import logging
 from decimal import Decimal
 
+from app.core.config import settings
+
 from app.models.picking import PickingManagement, PickingDetail, PickingWork
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.carrier_selection_log import CarrierSelectionLog
@@ -133,23 +135,6 @@ class CarrierSelectionService:
             The log ID (selection log code)
         """
         try:
-            # Check if we already have a selection log for this waybill
-            existing_log = self.db.query(CarrierSelectionLog).filter(
-                CarrierSelectionLog.HANM010002 == waybill_id
-            ).first()
-
-            #todo ログは実行のたびに作るようにお願いします。
-            if existing_log:
-                logger.info(f"Found existing carrier selection log for waybill {waybill_id}: {existing_log.HANM010001}")
-                # If carrier has changed, update the log entry
-                if existing_log.HANM010006 != selected_carrier:
-                    logger.info(f"Updating carrier from {existing_log.HANM010006} to {selected_carrier}")
-                    existing_log.HANM010006 = selected_carrier
-                    existing_log.HANM010007 = cheapest_carrier
-                    existing_log.HANM010008 = reason
-                    self.db.commit()
-                return existing_log.HANM010001
-            
             # Generate a unique ID for the selection log code (HANM010001)
             # Format: YYMMDDNNNN where NNNN is a sequence number (here we use milliseconds)
             now = datetime.now()
@@ -411,14 +396,19 @@ class CarrierSelectionService:
         for order_id in order_ids:
             # Only include orders where carrier code is None or empty
             # Also filter by document type as requested
-            header = self.db.query(JuHachuHeader).filter(
+            query = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
-                (JuHachuHeader.HANR004A008 == None) | (JuHachuHeader.HANR004A008 == '') #todo developmentでは再実行できるようにお願いします。
-                (JuHachuHeader.HANR004A008 == None) | 
-                (JuHachuHeader.HANR004A008 == '') | 
-                (JuHachuHeader.HANR004A008 == '00'),
                 JuHachuHeader.HANR004004.in_(['1', '2', '3'])
-            ).first()
+            )
+
+            if not settings.ENV == "Development":
+                query = query.filter(
+                    (JuHachuHeader.HANR004A008 == None) |
+                    (JuHachuHeader.HANR004A008 == '') |
+                    (JuHachuHeader.HANR004A008 == '00')
+                )
+
+            header = query.first()
             
             if header:
                 order_headers[order_id] = header
@@ -455,7 +445,7 @@ class CarrierSelectionService:
             # 6-11. Delivery destination info
             dest_name1 = header.HANR004A035 or ""
             dest_name2 = header.HANR004A036 or ""
-            dest_postal = header.HANR004A037 or "" #todo trimが必要そうです。
+            dest_postal = (header.HANR004A037 or "").strip()
             dest_addr1 = header.HANR004A039 or ""
             dest_addr2 = header.HANR004A040 or ""
             dest_addr3 = header.HANR004A041 or ""
@@ -502,6 +492,14 @@ class CarrierSelectionService:
                     "waybill_id": len(waybills) + 1,  # Temporary ID
                     "customer_code": customer_code,
                     "prefecture_code": prefecture_code,
+                    "delivery_info1": delivery_info1,
+                    "delivery_info2": delivery_info2,
+                    "dest_name1": dest_name1,
+                    "dest_name2": dest_name2,
+                    "dest_postal": dest_postal,
+                    "dest_addr1": dest_addr1,
+                    "dest_addr2": dest_addr2,
+                    "dest_addr3": dest_addr3,
                     "jis_code": jis_code,
                     "postal_code": dest_postal,
                     "shipping_date": shipping_date_obj,
@@ -660,29 +658,59 @@ class CarrierSelectionService:
         """
         try:
             customer_code = waybill.get("customer_code", "")
-            postal_code = waybill.get("postal_code", "")
-            prefecture_code = waybill.get("prefecture_code", "")
+            shipping_date = waybill.get("shipping_date", "")
+            delivery_date = waybill.get("delivery_date", "")
+            shipping_date_str = shipping_date.strftime("%Y%m%d") if shipping_date else ""
+            delivery_date_str = delivery_date.strftime("%Y%m%d") if delivery_date else ""
+            delivery_info1 = waybill.get("delivery_info1", "")
+            delivery_info2 = waybill.get("delivery_info2", "")
+            dest_name1 = waybill.get("dest_name1", "")
+            dest_name2 = waybill.get("dest_name2", "")
+            dest_postal = waybill.get("dest_postal", "")
+            dest_addr1 = waybill.get("dest_addr1", "")
+            dest_addr2 = waybill.get("dest_addr2", "")
+            dest_addr3 = waybill.get("dest_addr3", "")
+
+            print(f"customer_code       : {customer_code}")
+            print(f"shipping_date_str   : {shipping_date_str}")
+            print(f"delivery_date_str   : {delivery_date_str}")
+            print(f"delivery_info1      : {delivery_info1}")
+            print(f"delivery_info2      : {delivery_info2}")
+            print(f"dest_name1          : {dest_name1}")
+            print(f"dest_name2          : {dest_name2}")
+            print(f"dest_postal         : {dest_postal}")
+            print(f"dest_addr1          : {dest_addr1}")
+            print(f"dest_addr2          : {dest_addr2}")
+            print(f"dest_addr3          : {dest_addr3}")
             
-            if not customer_code or not postal_code:
-                return None
-                
-            # First, try to find recent orders with the same shipping details
-            recent_headers = self.db.query(JuHachuHeader).filter(
-                JuHachuHeader.HANR004002 == customer_code,   # Same customer
-                JuHachuHeader.HANR004A037 == postal_code,    # Same postal code
-                JuHachuHeader.HANR004A031 == prefecture_code, # Same prefecture
-                JuHachuHeader.HANR004A008 != None,           # Has a carrier assigned
-                JuHachuHeader.HANR004A008 != ""              # Non-empty carrier code
+            recent_headers = self.db.query(Waybill).filter(
+                Waybill.HANM009004 == customer_code,    # Same customer
+                Waybill.HANM009002 == shipping_date_str,    # Same shipping date
+                Waybill.HANM009003 == delivery_date_str,    # Same delivery date
+                Waybill.HANM009005 == delivery_info1,  # Same delivery infomation1
+                Waybill.HANM009006 == delivery_info2,  # Same delivery_infomation2
+                Waybill.HANM009007 == dest_name1,      # Same destination name1
+                Waybill.HANM009008 == dest_name2,      # Same destination name2
+                Waybill.HANM009009 == dest_postal,     # Same destination postal code
+                Waybill.HANM009010 == dest_addr1,      # Same delivery address1
+                Waybill.HANM009011 == dest_addr2,      # Same delivery address2
+                Waybill.HANM009012 == dest_addr3,      # Same delivery address3
             ).order_by(
-                desc(JuHachuHeader.HANR004UPD)               # Most recent by update date
+                desc(Waybill.HANM009002)                # Most recent by update date
             ).limit(10).all()
-            
+
             if recent_headers and len(recent_headers) > 0:
                 # Return the most recently used carrier for the same destination
-                return recent_headers[0].HANR004A008
+                waybill_code = recent_headers[0].HANM009001
+
+                carrier_selection_log = self.db.query(CarrierSelectionLog).filter(
+                    CarrierSelectionLog.HANM010002 == waybill_code
+                ).order_by(
+                    desc(CarrierSelectionLog.HAN10M010_INS)
+                ).limit(10).all()
                 
-            # If no match found, fall back to the previous method
-            return self.find_previous_carrier(customer_code)
+                if carrier_selection_log and len(carrier_selection_log) > 0:
+                    return carrier_selection_log[0].HANM010007
         except Exception as e:
             logger.error(f"Error in find_previous_carrier_for_waybill: {str(e)}")
             return None
@@ -800,12 +828,6 @@ class CarrierSelectionService:
                 logger.info(f"Found previously used carrier '{previous_carrier}' for waybill destination")
             else:
                 logger.info(f"No previous carrier found for waybill destination, checking customer history")
-                # Fall back to customer history if no exact destination match
-                previous_carrier = self.find_previous_carrier(waybill.get("customer_code", ""))
-                if previous_carrier:
-                    logger.info(f"Found previously used carrier '{previous_carrier}' from customer history")
-                else:
-                    logger.info(f"No previous carrier found for customer '{waybill.get('customer_code', '')}'")
                 
             # Get area code from JIS code or postal code
             jis_code = waybill.get("jis_code")
