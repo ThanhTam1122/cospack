@@ -161,9 +161,9 @@ class ProductMaster(Base):
     
     # Timestamps and validity period
     HANM003INS = Column("HANM003INS", DECIMAL(20, 6), nullable=False, 
-                      default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))  # 登録日時
+                    server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))  # 登録日時
     HANM003UPD = Column("HANM003UPD", DECIMAL(20, 6), nullable=False,
-                      default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))  # 更新日時
+                    server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))  # 更新日時
     HANM003096 = Column("HANM003096", DECIMAL(8, 0), nullable=False, default=0)  # 有効期間－開始日
     HANM003097 = Column("HANM003097", DECIMAL(8, 0), nullable=False, default=0)  # 有効期間－終了日
     
