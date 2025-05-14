@@ -38,7 +38,7 @@ class CarrierSelectionService:
         """
         try:
             # Remove any hyphens or spaces
-            postal_code = postal_code.replace("-", "").replace(" ", "")
+            postal_code = postal_code
             
             # Make API request
             url = f"https://postcode-jp.com/api/postcode/{postal_code}"
