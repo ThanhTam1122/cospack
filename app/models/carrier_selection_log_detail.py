@@ -1,28 +1,34 @@
-from sqlalchemy import Column, Integer, DECIMAL
-from sqlalchemy.dialects.mssql import CHAR
-from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, DECIMAL, CHAR, event, PrimaryKeyConstraint
+from sqlalchemy.types import BigInteger
 from app.db.base import Base
 
 class CarrierSelectionLogDetail(Base):
     """
-    選定ログ詳細マスタ
-    Carrier Selection Log Detail Master
+    CosPacks選定ログ詳細(HAN99RA43CPLOGDETAIL)
+    CosPacks selection log details
     """
-    __tablename__ = "HAN10M011SENTEI_LOG_DETAIL"
+    __tablename__ = "HAN99RA43CPLOGDETAIL"
 
-    # 選定ログコード - Selection Log Code
-    HANM011001 = Column("HANM011001", CHAR(10), nullable=False)
-    
+    # ログ識別連番 - Log Code
+    HANRA43001 = Column("HANRA43001", CHAR(10), nullable=False)
     # 商品コード - Product Code
-    HANM011002 = Column("HANM011002", CHAR(25), nullable=False)
-    
+    HANRA43002 = Column("HANRA43002", CHAR(8), nullable=False)
     # 見積サイズ（cm） - Estimated Size (cm)
-    HANM011003 = Column("HANM011003", DECIMAL(8, 0), nullable=False)
-    
+    HANRA43003 = Column("HANRA43003", DECIMAL(8, 0), nullable=False)
     # 見積個口数 - Estimated Parcel Count
-    HANM011004 = Column("HANM011004", DECIMAL(5, 0), nullable=False)
-
+    HANRA43004 = Column("HANRA43004", DECIMAL(5, 0), nullable=False)
+    # 更新番号 - Update Number
+    HANRA43999 = Column("HANRA43999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    # 登録日時 - Date and time of registration
+    HANRA43INS = Column("HANRA43INS", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+    # 更新日時 - Update date and time
+    HANRA43UPD = Column("HANRA43UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
     # Composite Primary Key
     __table_args__ = (
-        PrimaryKeyConstraint('HANM011001', 'HANM011002', name='pk_carrier_selection_log_detail'),
+        PrimaryKeyConstraint('HANRA43001', 'HANRA43002', name='pk_carrier_selection_log_detail'),
     )

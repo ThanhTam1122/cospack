@@ -1,23 +1,32 @@
-from sqlalchemy import Column, Integer, String, Date
-from sqlalchemy.types import DECIMAL
+from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, DECIMAL, CHAR, NVARCHAR
 from app.db.base import Base
 
 class Waybill(Base):
     """
-    送り状マスタ
+    CosPacks送り状(HAN99RA41CPOKURIJYO)
     Waybill Master
     """
-    __tablename__ = "HAN10M009OKURIJO"
+    __tablename__ = "HAN99RA41CPOKURIJYO"
 
-    HANM009001 = Column("HANM009001", String(32), primary_key=True, nullable=False)  # 送り状コード
-    HANM009002 = Column("HANM009002", Date, nullable=False)  # 入出荷予定日
-    HANM009003 = Column("HANM009003", Date, nullable=False)  # 納期日
-    HANM009004 = Column("HANM009004", String(64), nullable=False)  # 取引先コード
-    HANM009005 = Column("HANM009005", DECIMAL, nullable=True)  # 納期情報1
-    HANM009006 = Column("HANM009006", DECIMAL, nullable=True)  # 納期情報2
-    HANM009007 = Column("HANM009007", String(64), nullable=True)  # 納品先名1
-    HANM009008 = Column("HANM009008", String(64), nullable=True)  # 納品先名2
-    HANM009009 = Column("HANM009009", String(16), nullable=True)  # 納品先郵便番号
-    HANM009010 = Column("HANM009010", String(128), nullable=True)  # 納品先住所1
-    HANM009011 = Column("HANM009011", String(128), nullable=True)  # 納品先住所2
-    HANM009012 = Column("HANM009012", String(128), nullable=True)  # 納品先住所3
+    HANRA41001 = Column("HANRA41001", DECIMAL(10, 0), primary_key=True, nullable=False)  # 送り状識別連番
+    HANRA41002 = Column("HANRA41002", DECIMAL(8, 0), nullable=True)  # 出荷予定日
+    HANRA41003 = Column("HANRA41003", DECIMAL(8, 0), nullable=True)  # 納期日
+    HANRA41004 = Column("HANRA41004", CHAR(11), nullable=True)  # 取引先コード
+    HANRA41005 = Column("HANRA41005", DECIMAL(1, 0), nullable=True)  # 納期情報1
+    HANRA41006 = Column("HANRA41006", DECIMAL(1, 0), nullable=True) # 納期情報2
+    HANRA41007 = Column("HANRA41007", NVARCHAR(32), nullable=True) # 納品先名1
+    HANRA41008 = Column("HANRA41008", NVARCHAR(32), nullable=True) # 納品先名2
+    HANRA41009 = Column("HANRA41009", CHAR(10), nullable=True)  # 納品先郵便番号
+    HANRA41010 = Column("HANRA41010", NVARCHAR(32), nullable=True)  # 納品先住所1
+    HANRA41011 = Column("HANRA41011", NVARCHAR(32), nullable=True)  # 納品先住所2
+    HANRA41012 = Column("HANRA41012", NVARCHAR(32), nullable=True)  # 納品先住所3
+    HANRA41999 = Column("HANRA41999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0) #更新番号
+    HANRA41INS = Column("HANRA41INS", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    )) #登録日時
+    HANRA41UPD = Column("HANRA41UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    )) #更新日時
+    def __repr__(self):
+        return f"<Waybill='{self.HANRA41001}'>"
