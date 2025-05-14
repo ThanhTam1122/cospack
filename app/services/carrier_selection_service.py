@@ -402,11 +402,7 @@ class CarrierSelectionService:
             )
 
             if not settings.ENV == "Development":
-                query = query.filter(
-                    (JuHachuHeader.HANR004A008 == None) |
-                    (JuHachuHeader.HANR004A008 == '') |
-                    (JuHachuHeader.HANR004A008 == '00')
-                )
+                query = query.filter(JuHachuHeader.HANR004A008 == settings.CARRIER_UNASSIGNED_CODE)
 
             header = query.first()
             
@@ -445,7 +441,7 @@ class CarrierSelectionService:
             # 6-11. Delivery destination info
             dest_name1 = header.HANR004A035 or ""
             dest_name2 = header.HANR004A036 or ""
-            dest_postal = (header.HANR004A037 or "").strip()
+            dest_postal = (header.HANR004A037 or "").replace("-", "").strip()
             dest_addr1 = header.HANR004A039 or ""
             dest_addr2 = header.HANR004A040 or ""
             dest_addr3 = header.HANR004A041 or ""
