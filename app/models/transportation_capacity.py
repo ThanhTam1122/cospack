@@ -1,16 +1,38 @@
-from sqlalchemy import Column, Integer
-from sqlalchemy.dialects.mssql import CHAR
-from sqlalchemy.types import DECIMAL
+from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, DECIMAL, CHAR, event
 from app.db.base import Base
 
 class TransportationCapacity(Base):
     """
-    運送会社キャパシティマスタ
+    運送会社キャパシティマスタ (HAN99MA47UNSOCAPA)
     Transportation Company Capacity Master
     """
-    __tablename__ = "HAN10M008UNSO_CAPACITY"
+    __tablename__ = "HAN99MA47UNSOCAPA"
 
-    HANM008001 = Column("HANM008001", CHAR(8), primary_key=True, nullable=False)  # 運送会社コード
-    HANM008002 = Column("HANM008002", DECIMAL(10, 0), nullable=False)  # 限度才数
-    HANM008003 = Column("HANM008003", DECIMAL(10, 0), nullable=False)  # 最大重量（kg）
-    HANM008004 = Column("HANM008004", DECIMAL(3, 0), nullable=True)   # 才数換算重量（kg）
+    # 1. 運送会社コード - Carrier Code (Primary Key, CHAR(2))
+    HANMA47001 = Column("HANMA47001", CHAR(2), primary_key=True, nullable=False)
+
+    # 2. 限度才数 - Capacity Limit (DECIMAL(10,0))
+    HANMA47002 = Column("HANMA47002", DECIMAL(10, 0), nullable=True)
+
+    # 3. 最大重量（kg） - Max Weight (DECIMAL(10,0))
+    HANMA47003 = Column("HANMA47003", DECIMAL(10, 0), nullable=True)
+
+    # 4. 才数換算重量（kg） - Weight per Volume (DECIMAL(3,0))
+    HANMA47004 = Column("HANMA47004", DECIMAL(3, 0), nullable=True)
+
+    # 5. 更新番号 - Update Number (DECIMAL(9,0), starts at 0, auto +1)
+    HANMA47999 = Column("HANMA47999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+
+    # 6. 登録日時 - Created Timestamp (DECIMAL(14,6))
+    HANMA47INS = Column("HANMA47INS", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+
+    # 7. 更新日時 - Updated Timestamp (DECIMAL(14,6))
+    HANMA47UPD = Column("HANMA47UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+
+    def __repr__(self):
+        return f"<TransportationCapacity carrier='{self.HANMA47001}'>"

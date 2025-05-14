@@ -1,25 +1,30 @@
-from sqlalchemy import Column
-from sqlalchemy.types import DECIMAL
+from sqlalchemy import Column, DECIMAL, CHAR
+from sqlalchemy.types import NVARCHAR
 from sqlalchemy.sql.expression import text
-from sqlalchemy.dialects.mssql import CHAR, NVARCHAR
 from app.db.base import Base
 
 class CarrierSelectionLog(Base):
     """
-    選定ログマスタ
-    Carrier Selection Log Master
+    CosPacks選定ログ(HAN99RA42CPLOG)
+    CosPacks selection log
     """
-    __tablename__ = "HAN10M010SENTEI_LOG"
+    __tablename__ = "HAN99RA42CPLOG"
 
-    HANM010001 = Column("HANM010001", CHAR(10), primary_key=True, nullable=False)  # 選定ログコード
-    HANM010002 = Column("HANM010002", CHAR(10), nullable=False)  # 送り状コード
-    HANM010003 = Column("HANM010003", DECIMAL(8, 0), nullable=False)  # 見積個口数
-    HANM010004 = Column("HANM010004", DECIMAL(8, 0), nullable=False)  # 見積才数
-    HANM010005 = Column("HANM010005", DECIMAL(8, 0), nullable=False)  # 見積重量（kg）
-    HANM010006 = Column("HANM010006", CHAR(8), nullable=False)  # 最安運送会社コード
-    HANM010007 = Column("HANM010007", CHAR(8), nullable=False)  # 選定運送会社コード
-    HANM010008 = Column("HANM010008", NVARCHAR(256), nullable=True)  # 選定理由
+    HANRA42001 = Column("HANRA42001", DECIMAL(10, 0), primary_key=True, nullable=False)  # ログ識別連番
+    HANRA42002 = Column("HANRA42002", DECIMAL(10, 0), nullable=False)  # 送り状識別連番
+    HANRA42003 = Column("HANRA42003", DECIMAL(8, 0), nullable=False)  # 見積個口数
+    HANRA42004 = Column("HANRA42004", DECIMAL(8, 0), nullable=False)  # 見積才数
+    HANRA42005 = Column("HANRA42005", DECIMAL(8, 0), nullable=False)  # 見積重量（kg）
+    HANRA42006 = Column("HANRA42006", CHAR(2), nullable=False)  # 最安運送会社コード
+    HANRA42007 = Column("HANRA42007", CHAR(2), nullable=False)  # 選定運送会社コード
+    HANRA42008 = Column("HANRA42008", NVARCHAR(255), nullable=True)  # 選定理由
+    HANRA42999 = Column("HANRA42999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0) #更新番号
+    HANRA42INS = Column("HANRA42INS", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+    HANRA42UPD = Column("HANRA42UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
     
-    # Timestamp columns - automatically populated on insert/update
-    HAN10M010_INS = Column("HAN10M010_INS", DECIMAL(14, 6), nullable=False,
-                       default=text("CONVERT([decimal](14,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+    def __repr__(self):
+        return f"<CarrierSelectionLog='{self.HANRA42001}'>"

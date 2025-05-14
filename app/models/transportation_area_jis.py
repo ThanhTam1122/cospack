@@ -1,24 +1,37 @@
-from sqlalchemy import Column, Integer, CHAR
-from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, CHAR, DECIMAL, PrimaryKeyConstraint, event
 from app.db.base import Base
 
 class TransportationAreaJISMapping(Base):
     """
-    運送エリア住所コード紐付けマスタ (HAN99MA11AREAJIS)
-    Transportation Area to JIS Code Mapping
+    運送エリア住所コード紐付マスタ (HAN99MA44UNJYUHIMODUKE)
+    Transportation Area to JIS Address Code Mapping
     """
-    __tablename__ = "HAN99MA11AREAJIS"
-    
-    # 運送エリアコード - Transportation Area Code
-    HANMA11001 = Column("HANMA11001", Integer, nullable=False)
-    
-    # JIS規格住所コード - JIS Standard Address Code
-    HANMA11002 = Column("HANMA11002", CHAR(5), nullable=False)
+    __tablename__ = "HAN99MA44UNJYUHIMODUKE"
+
+    # 1. 運送エリアコード - Transportation Area Code (PK)
+    HANMA44001 = Column("HANMA44001", CHAR(8), nullable=False)
+
+    # 2. JIS規格住所コード - JIS Standard Address Code (PK)
+    HANMA44002 = Column("HANMA44002", CHAR(5), nullable=False)
+
+    # 3. 更新番号 - Update Version Number, default=0, +1 on update
+    HANMA44999 = Column("HANMA44999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+
+    # 4. 登録日時 - Insert timestamp
+    HANMA44INS = Column("HANMA44INS", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+
+    # 5. 更新日時 - Update timestamp
+    HANMA44UPD = Column("HANMA44UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
 
     # Composite Primary Key
     __table_args__ = (
-        PrimaryKeyConstraint('HANMA11001', 'HANMA11002', name='pk_transportation_area_jis'),
+        PrimaryKeyConstraint("HANMA44001", "HANMA44002", name="pk_transportation_area_jis_mapping"),
     )
 
     def __repr__(self):
-        return f"<TransportationAreaJISMapping {self.HANMA11002} -> {self.HANMA11001}>"
+        return f"<TransportationAreaJISMapping area={self.HANMA44001}, jis={self.HANMA44002}>"

@@ -36,9 +36,9 @@ def wait_for_backend(url, timeout=10, interval=0.2):
         except requests.RequestException:
             pass  # Ignore and retry
 
-        if time.time() - start_time > timeout:
-            print("❌ Timed out waiting for backend to start")
-            return False
+        # if time.time() - start_time > timeout:
+        #     print("❌ Timed out waiting for backend to start")
+        #     return False
 
         time.sleep(interval)
 
