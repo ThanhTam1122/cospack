@@ -43,7 +43,6 @@ class CarrierSelectionRequest(BaseModel):
 
 class CarrierSelectionDetail(BaseModel):
     """Detailed information about a carrier selection"""
-    waybill_id: int
     parcel_count: int
     volume: float
     weight: float
