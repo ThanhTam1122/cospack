@@ -134,7 +134,7 @@ class CarrierSelectionService:
             The log ID (selection log code)
         """
         try:
-            # Generate a unique ID for the selection log code (HANM010001)
+            # Generate a unique ID for the selection log code (HANRA42001)
             # Format: YYMMDDNNNN where NNNN is a sequence number (here we use milliseconds)
             now = datetime.now()
             timestamp = now.strftime("%y%m%d")  # First 6 chars: year, month, day
@@ -143,25 +143,25 @@ class CarrierSelectionService:
             
             # Create log entry
             log = CarrierSelectionLog(
-                HANM010001=log_id,                        # Generated log ID
-                HANM010002=waybill_id,                    # Waybill ID
-                HANM010003=self.to_float(parcel_count),   # Parcel count
-                HANM010004=self.to_float(volume),         # Volume (才数)
-                HANM010005=self.to_float(weight),         # Weight (重量)
-                HANM010006=selected_carrier,              # Selected carrier 
-                HANM010007=cheapest_carrier,              # Cheapest carrier
-                HANM010008=reason,                        # Selection reason
-                HAN10M010_INS= datetime.now().strftime("%Y%m%d%H%M%S%f")[:20]
+                HANRA42001=log_id,                         # Generated log ID
+                HANRA42002=waybill_id,                     # Waybill ID
+                HANRA42003=self.to_float(parcel_count),    # Parcel count
+                HANRA42004=self.to_float(volume),          # Volume
+                HANRA42005=self.to_float(weight),          # Weight
+                HANRA42006=selected_carrier,               # Selected carrier
+                HANRA42007=cheapest_carrier,               # Cheapest carrier
+                HANRA42008=reason,                         # Selection reason
+                HANRA42999=0,                              # Update number
             )
             
             self.db.add(log)
             self.db.flush()  # To get the ID
             
             # Add product details if provided
-            if products and log.HANM010001:
+            if products and log.HANRA42001:
                 # Check if product details already exist
                 existing_details = self.db.query(CarrierSelectionLogDetail).filter(
-                    CarrierSelectionLogDetail.HANM011001 == log.HANM010001
+                    CarrierSelectionLogDetail.HANRA43001 == log.HANRA42001
                 ).all()
                 
                 if existing_details:
@@ -184,10 +184,11 @@ class CarrierSelectionService:
                     box_count = math.ceil(quantity / outer_box_count)
                     
                     detail = CarrierSelectionLogDetail(
-                        HANM011001=log.HANM010001,       # Log ID
-                        HANM011002=product_code,         # Product code
-                        HANM011003=self.to_float(size),  # Size
-                        HANM011004=self.to_float(box_count)  # Box count
+                        HANRA43001=log.HANRA42001,       # Log ID
+                        HANRA43002=product_code,         # Product code
+                        HANRA43003=self.to_float(size),  # Size
+                        HANRA43004=self.to_float(box_count),  # Box count
+                        HANRA43999=0, # Update number defaulting to 0
                     )
                     
                     self.db.add(detail)
@@ -607,33 +608,33 @@ class CarrierSelectionService:
             print(f"dest_addr3          : {dest_addr3}")
             
             recent_headers = self.db.query(Waybill).filter(
-                Waybill.HANM009004 == customer_code,    # Same customer
-                Waybill.HANM009002 == shipping_date_str,    # Same shipping date
-                Waybill.HANM009003 == delivery_date_str,    # Same delivery date
-                Waybill.HANM009005 == delivery_info1,  # Same delivery infomation1
-                Waybill.HANM009006 == delivery_info2,  # Same delivery_infomation2
-                Waybill.HANM009007 == dest_name1,      # Same destination name1
-                Waybill.HANM009008 == dest_name2,      # Same destination name2
-                Waybill.HANM009009 == dest_postal,     # Same destination postal code
-                Waybill.HANM009010 == dest_addr1,      # Same delivery address1
-                Waybill.HANM009011 == dest_addr2,      # Same delivery address2
-                Waybill.HANM009012 == dest_addr3,      # Same delivery address3
+                Waybill.HANRA41004 == customer_code,    # Same customer
+                Waybill.HANRA41002 == shipping_date_str,    # Same shipping date
+                Waybill.HANRA41003 == delivery_date_str,    # Same delivery date
+                Waybill.HANRA41005 == delivery_info1,  # Same delivery infomation1
+                Waybill.HANRA41006 == delivery_info2,  # Same delivery_infomation2
+                Waybill.HANRA41007 == dest_name1,      # Same destination name1
+                Waybill.HANRA41008 == dest_name2,      # Same destination name2
+                Waybill.HANRA41009 == dest_postal,     # Same destination postal code
+                Waybill.HANRA41010 == dest_addr1,      # Same delivery address1
+                Waybill.HANRA41011 == dest_addr2,      # Same delivery address2
+                Waybill.HANRA41012 == dest_addr3,      # Same delivery address3
             ).order_by(
-                desc(Waybill.HANM009002)                # Most recent by update date
+                desc(Waybill.HANRA41002)                # Most recent by update date
             ).limit(10).all()
 
             if recent_headers and len(recent_headers) > 0:
                 # Return the most recently used carrier for the same destination
-                waybill_code = recent_headers[0].HANM009001
+                waybill_code = recent_headers[0].HANRA41001
 
                 carrier_selection_log = self.db.query(CarrierSelectionLog).filter(
-                    CarrierSelectionLog.HANM010002 == waybill_code
+                    CarrierSelectionLog.HANRA42002 == waybill_code
                 ).order_by(
                     desc(CarrierSelectionLog.HAN10M010_INS)
                 ).limit(10).all()
                 
                 if carrier_selection_log and len(carrier_selection_log) > 0:
-                    return carrier_selection_log[0].HANM010007
+                    return carrier_selection_log[0].HANRA42007
         except Exception as e:
             logger.error(f"Error in find_previous_carrier_for_waybill: {str(e)}")
             return None

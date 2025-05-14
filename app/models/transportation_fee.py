@@ -1,42 +1,56 @@
-from sqlalchemy import Column, DECIMAL, Integer
-from sqlalchemy.dialects.mssql import CHAR
+from sqlalchemy.sql.expression import text
+from sqlalchemy import Column, DECIMAL, CHAR, event
 from app.db.base import Base
+
 
 class TransportationFee(Base):
     """
-    運送料金マスタ (HAN99MA12TRANSPORTATIONFEE)
+    運送料金マスタ (HAN99MA46SORYO)
     Transportation Fee Master
     """
-    __tablename__ = "HAN99MA12TRANSPORTATIONFEE"
-    
-    # 運送会社コード - Transportation Company Code
-    HANMA12001 = Column("HANMA12001", CHAR(8), nullable=False)
-    
-    # 運送エリアコード - Transportation Area Code
-    HANMA12002 = Column("HANMA12002", CHAR(8), nullable=False)
-    
-    # 最大重量（kg） - Maximum Weight in kg
-    HANMA12003 = Column("HANMA12003", DECIMAL(5, 0), nullable=True)
-    
-    # 最大才数 - Maximum Volume
-    HANMA12004 = Column("HANMA12004", DECIMAL(5, 0), nullable=True)
-    
-    # 最大サイズ（cm） - Maximum Size in cm
-    HANMA12005 = Column("HANMA12005", DECIMAL(5, 0), nullable=True)
-    
-    # 才数単価 - Unit Price per Volume
-    HANMA12006 = Column("HANMA12006", DECIMAL(15, 0), nullable=True)
-    
-    # マイナス才数 - Minus Volume
-    HANMA12007 = Column("HANMA12007", DECIMAL(5, 0), nullable=True)
-    
-    # 基準額 - Base Amount
-    HANMA12008 = Column("HANMA12008", DECIMAL(15, 0), nullable=False)
-    
-    # 料金タイプ - Fee Type
-    HANMA12009 = Column("HANMA12009", DECIMAL(1, 0), nullable=False)
+    __tablename__ = "HAN99MA46SORYO"
 
-    ID = Column("ID", Integer, nullable=False, primary_key=True) #todo こちらも無くしたいです
+    # 1. 運送料金コード - Transportation Fee Code (Primary Key)
+    HANMA46001 = Column("HANMA46001", CHAR(10), primary_key=True, nullable=False)
+
+    # 2. 運送会社コード - Transport Company Code
+    HANMA46002 = Column("HANMA46002", CHAR(2), nullable=True)
+
+    # 3. 運送エリアコード - Transport Area Code
+    HANMA46003 = Column("HANMA46003", CHAR(8), nullable=True)
+
+    # 4. 最大重量（kg） - Max Weight (default 0, NOT NULL)
+    HANMA46004 = Column("HANMA46004", DECIMAL(5, 0), nullable=False, default=0)
+
+    # 5. 最大才数 - Max Volume (default 0, NOT NULL)
+    HANMA46005 = Column("HANMA46005", DECIMAL(5, 0), nullable=False, default=0)
+
+    # 6. 最大サイズ（cm） - Max Dimensions (default 0, NOT NULL)
+    HANMA46006 = Column("HANMA46006", DECIMAL(5, 0), nullable=False, default=0)
+
+    # 7. 才数単価 - Price per Unit Volume (default 0, NOT NULL)
+    HANMA46007 = Column("HANMA46007", DECIMAL(14, 0), nullable=False, default=0)
+
+    # 8. マイナス才数 - Minus Volume (default 0, NOT NULL)
+    HANMA46008 = Column("HANMA46008", DECIMAL(5, 0), nullable=False, default=0)
+
+    # 9. 基準額 - Base Price (nullable OK)
+    HANMA46009 = Column("HANMA46009", DECIMAL(14, 0), nullable=True)
+
+    # 10. 料金タイプ - Fee Type (1=fixed, 2=per unit, 3=per item)
+    HANMA46010 = Column("HANMA46010", DECIMAL(1, 0), nullable=True)
+
+    # 11. 更新番号 - Update Version Number (default 0, +1 on update)
+    HANMA46999 = Column("HANMA46999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+
+    # 12. 登録日時 - Created Timestamp (DECIMAL(14,6))
+    HANMA46INS = Column("HANMA46INS",DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
+    # 13. 更新日時 - Update Timestamp (DECIMAL(14,6))
+    HANMA46UPD = Column("HANMA46UPD", DECIMAL(20, 6), nullable=True, 
+                        server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
+    ))
 
     def __repr__(self):
-        return f"<TransportationFee {self.HANMA12001}-{self.HANMA12002}>"
+        return f"<TransportationFee code='{self.HANMA46001}'>"

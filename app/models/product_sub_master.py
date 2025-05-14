@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean, Float, Text
+from sqlalchemy import Column
 from sqlalchemy.types import DECIMAL
-from sqlalchemy.dialects.mssql import NVARCHAR, CHAR, VARCHAR
+from sqlalchemy.dialects.mssql import NVARCHAR, CHAR
 from sqlalchemy.sql.expression import text
 from app.db.base import Base
 

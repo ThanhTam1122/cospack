@@ -41,11 +41,11 @@ class FeeCalculationService:
             
         try:
             mapping = self.db.query(PostalJISMapping).filter(
-                PostalJISMapping.HANMA45001 == postal_code
+                PostalJISMapping.HANMA45002 == postal_code
             ).first()
             
             if mapping:
-                return mapping.HANMA45002
+                return mapping.HANMA45001
             
             return None
             
@@ -62,11 +62,11 @@ class FeeCalculationService:
             
         try:
             mapping = self.db.query(TransportationAreaJISMapping).filter(
-                TransportationAreaJISMapping.HANMA11002 == jis_code
+                TransportationAreaJISMapping.HANMA44002 == jis_code
             ).first()
             
             if mapping:
-                return mapping.HANMA11001
+                return mapping.HANMA44001
             
             logger.warning(f"Could not find transportation area for JIS code {jis_code}")
             return None
@@ -395,8 +395,8 @@ class FeeCalculationService:
                    
         # Get transportation fee records for this carrier and area
         fee_records = self.db.query(TransportationFee).filter(
-            TransportationFee.HANMA12001 == carrier_code,
-            TransportationFee.HANMA12002 == str(area_code)
+            TransportationFee.HANMA46002 == carrier_code,
+            TransportationFee.HANMA46003 == str(area_code)
         ).all()
 
         if not fee_records:
@@ -415,9 +415,9 @@ class FeeCalculationService:
             applicable_records = []
             for record in fee_records:
                 # Convert all values to float to avoid type issues
-                max_weight = self.to_float(record.HANMA12003)
-                max_volume = self.to_float(record.HANMA12004)
-                max_size = self.to_float(record.HANMA12005)
+                max_weight = self.to_float(record.HANMA46004)
+                max_volume = self.to_float(record.HANMA46005)
+                max_size = self.to_float(record.HANMA46006)
                 
                 # Check if this record's constraints are satisfied for this parcel
                 weight_ok = max_weight is None or max_weight == 0 or weight <= max_weight
@@ -434,11 +434,11 @@ class FeeCalculationService:
             # Use the most specific record for this parcel
             def record_specificity(record):
                 specificity = 0
-                if record.HANMA12003 is not None and record.HANMA12003 > 0:
+                if record.HANMA46004 is not None and record.HANMA46004 > 0:
                     specificity += 1
-                if record.HANMA12004 is not None and record.HANMA12004 > 0:
+                if record.HANMA46005 is not None and record.HANMA46005 > 0:
                     specificity += 1
-                if record.HANMA12005 is not None and record.HANMA12005 > 0:
+                if record.HANMA46006 is not None and record.HANMA46006 > 0:
                     specificity += 1
                 return specificity
             
@@ -446,10 +446,10 @@ class FeeCalculationService:
             selected_record = applicable_records[0]
             
             # Calculate fee for this parcel based on its size
-            fee_type = self.to_int(selected_record.HANMA12009)
-            base_fee = self.to_float(selected_record.HANMA12008)
-            volume_unit_price = self.to_float(selected_record.HANMA12006)
-            min_threshold = self.to_float(selected_record.HANMA12007)
+            fee_type = self.to_int(selected_record.HANMA46010)
+            base_fee = self.to_float(selected_record.HANMA46009)
+            volume_unit_price = self.to_float(selected_record.HANMA46007)
+            min_threshold = self.to_float(selected_record.HANMA46008)
             
             parcel_fee = 0.0
             
@@ -505,7 +505,7 @@ class FeeCalculationService:
         
         # Query capacity constraints for this carrier
         capacity = self.db.query(TransportationCapacity).filter(
-            TransportationCapacity.HANM008001 == carrier_code
+            TransportationCapacity.HANMA47001 == carrier_code
         ).first()
         
         # If no capacity constraints found, assume carrier has capacity
@@ -514,9 +514,9 @@ class FeeCalculationService:
             return True
             
         # Convert capacity values to float to avoid Decimal/float type issues
-        max_volume = self.to_float(capacity.HANM008002)
-        max_weight = self.to_float(capacity.HANM008003)
-        volume_weight_ratio = self.to_float(capacity.HANM008004)
+        max_volume = self.to_float(capacity.HANMA47002)
+        max_weight = self.to_float(capacity.HANMA47003)
+        volume_weight_ratio = self.to_float(capacity.HANMA47004)
             
         # Check volume constraint
         if max_volume > 0 and volume > max_volume:
@@ -563,8 +563,8 @@ class FeeCalculationService:
         
         # Query special capacity record
         special_capacity = self.db.query(SpecialCapacity).filter(
-            SpecialCapacity.HANMA15001 == carrier_code,
-            SpecialCapacity.HANMA15002 == shipping_date_int
+            SpecialCapacity.HANMA48001 == carrier_code,
+            SpecialCapacity.HANMA48002 == shipping_date_int
         ).first()
         
         # If no special capacity record exists, capacity is unlimited
@@ -573,8 +573,8 @@ class FeeCalculationService:
             return True
         
         # Convert capacity values to float to avoid Decimal/float type issues
-        max_volume = self.to_float(special_capacity.HANMA15003)
-        max_weight = self.to_float(special_capacity.HANMA15004)
+        max_volume = self.to_float(special_capacity.HANMA48003)
+        max_weight = self.to_float(special_capacity.HANMA48004)
         
         # Check volume constraint
         if max_volume > 0 and volume > max_volume:
@@ -1119,8 +1119,8 @@ class FeeCalculationService:
         try:
             # Get transportation fee records for this carrier and area
             fee_records = self.db.query(TransportationFee).filter(
-                TransportationFee.HANMA12001 == carrier_code,
-                TransportationFee.HANMA12002 == str(area_code)
+                TransportationFee.HANMA46002 == carrier_code,
+                TransportationFee.HANMA46003 == str(area_code)
             ).all()
             
             if not fee_records:
@@ -1137,9 +1137,9 @@ class FeeCalculationService:
             
             # Process each fee record
             for record in fee_records:
-                fee_type = self.to_int(record.HANMA12009)
-                base_fee = self.to_float(record.HANMA12008)
-                max_size = self.to_float(record.HANMA12005)
+                fee_type = self.to_int(record.HANMA46010)
+                base_fee = self.to_float(record.HANMA46009)
+                max_size = self.to_float(record.HANMA46006)
                 
                 # Store size-based fees
                 if max_size > 0:

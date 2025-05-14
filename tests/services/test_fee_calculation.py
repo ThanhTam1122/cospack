@@ -39,52 +39,52 @@ class TestFeeCalculationService(unittest.TestCase):
         
         # Setup Sagawa fee records (per parcel pricing)
         sagawa_60 = MagicMock(spec=TransportationFee)
-        sagawa_60.HANMA12001 = "SAGAWA"
-        sagawa_60.HANMA12002 = "1001"  # Tokyo area
-        sagawa_60.HANMA12003 = Decimal('30')  # Max weight
-        sagawa_60.HANMA12004 = Decimal('20')  # Max volume
-        sagawa_60.HANMA12005 = Decimal('60')  # Max size (60cm)
-        sagawa_60.HANMA12008 = Decimal('450')  # Base fee
-        sagawa_60.HANMA12009 = Decimal('3')   # Fee type (per parcel)
+        sagawa_60.HANMA46002 = "SAGAWA"
+        sagawa_60.HANMA46003 = "1001"  # Tokyo area
+        sagawa_60.HANMA46004 = Decimal('30')  # Max weight
+        sagawa_60.HANMA46005 = Decimal('20')  # Max volume
+        sagawa_60.HANMA46006 = Decimal('60')  # Max size (60cm)
+        sagawa_60.HANMA46009 = Decimal('450')  # Base fee
+        sagawa_60.HANMA46010 = Decimal('3')   # Fee type (per parcel)
         
         sagawa_80 = MagicMock(spec=TransportationFee)
-        sagawa_80.HANMA12001 = "SAGAWA"
-        sagawa_80.HANMA12002 = "1001"  # Tokyo area
-        sagawa_80.HANMA12003 = Decimal('30')  # Max weight
-        sagawa_80.HANMA12004 = Decimal('20')  # Max volume
-        sagawa_80.HANMA12005 = Decimal('80')  # Max size (80cm)
-        sagawa_80.HANMA12008 = Decimal('490')  # Base fee
-        sagawa_80.HANMA12009 = Decimal('3')   # Fee type (per parcel)
+        sagawa_80.HANMA46002 = "SAGAWA"
+        sagawa_80.HANMA46003 = "1001"  # Tokyo area
+        sagawa_80.HANMA46004 = Decimal('30')  # Max weight
+        sagawa_80.HANMA46005 = Decimal('20')  # Max volume
+        sagawa_80.HANMA46006 = Decimal('80')  # Max size (60cm)
+        sagawa_80.HANMA46009 = Decimal('490')  # Base fee
+        sagawa_80.HANMA46010 = Decimal('3')   # Fee type (per parcel)
         
         sagawa_100 = MagicMock(spec=TransportationFee)
-        sagawa_100.HANMA12001 = "SAGAWA"
-        sagawa_100.HANMA12002 = "1001"  # Tokyo area
-        sagawa_100.HANMA12003 = Decimal('30')  # Max weight
-        sagawa_100.HANMA12004 = Decimal('20')  # Max volume
-        sagawa_100.HANMA12005 = Decimal('100')  # Max size (100cm)
-        sagawa_100.HANMA12008 = Decimal('530')  # Base fee
-        sagawa_100.HANMA12009 = Decimal('3')   # Fee type (per parcel)
+        sagawa_100.HANMA46002 = "SAGAWA"
+        sagawa_100.HANMA46003 = "1001"  # Tokyo area
+        sagawa_100.HANMA46004 = Decimal('30')  # Max weight
+        sagawa_100.HANMA46005 = Decimal('20')  # Max volume
+        sagawa_100.HANMA46006 = Decimal('100')  # Max size (60cm)
+        sagawa_100.HANMA46009 = Decimal('530')  # Base fee
+        sagawa_100.HANMA46010 = Decimal('3')   # Fee type (per parcel)
         
         sagawa_120 = MagicMock(spec=TransportationFee)
-        sagawa_120.HANMA12001 = "SAGAWA"
-        sagawa_120.HANMA12002 = "1001"  # Tokyo area
-        sagawa_120.HANMA12003 = Decimal('30')  # Max weight
-        sagawa_120.HANMA12004 = Decimal('20')  # Max volume
-        sagawa_120.HANMA12005 = Decimal('120')  # Max size (120cm)
-        sagawa_120.HANMA12008 = Decimal('650')  # Base fee
-        sagawa_120.HANMA12009 = Decimal('3')   # Fee type (per parcel)
+        sagawa_120.HANMA46002 = "SAGAWA"
+        sagawa_120.HANMA46003 = "1001"  # Tokyo area
+        sagawa_120.HANMA46004 = Decimal('30')  # Max weight
+        sagawa_120.HANMA46005 = Decimal('20')  # Max volume
+        sagawa_120.HANMA46006 = Decimal('120')  # Max size (60cm)
+        sagawa_120.HANMA46009 = Decimal('650')  # Base fee
+        sagawa_120.HANMA46010 = Decimal('3')   # Fee type (per parcel)
         
         # Setup Yamato fee records (fixed price)
         yamato_fee = MagicMock(spec=TransportationFee)
-        yamato_fee.HANMA12001 = "YAMATO"
-        yamato_fee.HANMA12002 = "1001"  # Tokyo area
-        yamato_fee.HANMA12003 = Decimal('30')  # Max weight
-        yamato_fee.HANMA12004 = Decimal('20')  # Max volume
-        yamato_fee.HANMA12005 = Decimal('160')  # Max size (160cm)
-        yamato_fee.HANMA12006 = Decimal('0')   # Unit price per volume (not used)
-        yamato_fee.HANMA12007 = Decimal('0')   # Minus volume (not used)
-        yamato_fee.HANMA12008 = Decimal('800')  # Base fee
-        yamato_fee.HANMA12009 = Decimal('1')   # Fee type (fixed price)
+        yamato_fee.HANMA46002 = "YAMATO"
+        yamato_fee.HANMA46003 = "1001"  # Tokyo area
+        yamato_fee.HANMA46004 = Decimal('30')  # Max weight
+        yamato_fee.HANMA46005 = Decimal('20')  # Max volume
+        yamato_fee.HANMA46006 = Decimal('160')  # Max size (160cm)
+        yamato_fee.HANMA46007 = Decimal('0')   # Unit price per volume (not used)
+        yamato_fee.HANMA46008 = Decimal('0')   # Minus volume (not used)
+        yamato_fee.HANMA46009 = Decimal('800')  # Base fee
+        yamato_fee.HANMA46010 = Decimal('1')   # Fee type (fixed price)
         
         # Set up fee records query response
         sagawa_fees_query = MagicMock()
@@ -110,7 +110,7 @@ class TestFeeCalculationService(unittest.TestCase):
         
         # Mock product info response
         product1 = MagicMock()
-        product1.HANM003001 = 1001
+        product1.HANM003001 = 1001  
         product1.HANM003002 = "Test Product 1"
         product1.HANM003004 = "個"
         product1.HANM003K007 = 1  # Inner box count
