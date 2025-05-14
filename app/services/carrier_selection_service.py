@@ -390,19 +390,17 @@ class CarrierSelectionService:
         # Group by delivery destination, shipping date, delivery date, etc. as specified
         waybills = {}
         
-        # Get order IDs from the picking works
-        order_ids = list(set([work.HANW002002 for work in picking_works if work.HANW002002]))
-        
-        logger.info(f"Processing {len(order_ids)} unique order IDs from picking works")
-        
         # Get order headers and grouping data
         order_headers = {}
-        for order_id in order_ids:
+        for work in picking_works:
+            order_id = work.HANW002002
+            document_type = work.HANW002001  # Get the document type from picking work
+            
             # Only include orders where carrier code is None or empty
-            # Also filter by document type as requested
+            # Also filter by document type as requested and ensure it matches the picking work's document type
             query = self.db.query(JuHachuHeader).filter(
                 JuHachuHeader.HANR004005 == order_id,
-                JuHachuHeader.HANR004004.in_(['1', '2', '3'])
+                JuHachuHeader.HANR004004 == document_type  # Ensure document types match
             )
 
             if not settings.ENV == "Development":
@@ -411,11 +409,14 @@ class CarrierSelectionService:
             header = query.first()
             
             if header:
-                order_headers[order_id] = header
+                # Use a composite key of order_id and document_type to handle cases
+                # where the same order_id has multiple document types
+                key = f"{order_id}_{document_type}"
+                order_headers[key] = header
             else:
-                logger.info(f"Order header not found or already has carrier code assigned for order ID {order_id}")
-                
-        logger.info(f"Found {len(order_headers)} order headers with no carrier assigned out of {len(order_ids)} order IDs")
+                logger.info(f"Order header not found or already has carrier code assigned for order ID {order_id}, document type {document_type}")
+        
+        logger.info(f"Found {len(order_headers)} order headers with no carrier assigned")
         
         # If no valid order headers found, return empty list
         if not order_headers:
@@ -425,10 +426,12 @@ class CarrierSelectionService:
         # Group picking works into waybills based on the specified criteria
         for work in picking_works:
             order_id = work.HANW002002
-            header = order_headers.get(order_id)
+            document_type = work.HANW002001
+            key = f"{order_id}_{document_type}"
+            header = order_headers.get(key)
 
             if not header:
-                logger.info(f"Order header not found or already has carrier assigned for order {order_id}, skipping work item {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
+                logger.info(f"Order header not found or already has carrier assigned for order {order_id}, document type {document_type}, skipping work item {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
                 continue
             
             # Build grouping key based on the specified criteria
@@ -677,54 +680,18 @@ class CarrierSelectionService:
                 "message": f"No orders found for picking ID {picking_id}"
             }
         
-        # Get all orders associated with this picking
-        all_order_ids = self.db.query(PickingWork.HANW002002).filter(
-            PickingWork.HANW002009 == picking_id
-        ).distinct().all()
-        all_order_ids = [order_id[0] for order_id in all_order_ids if order_id[0]]
-        
-        # Check if any orders have carriers already assigned
-        orders_with_carriers = self.db.query(JuHachuHeader).filter(
-            JuHachuHeader.HANR004005.in_(all_order_ids),
-            JuHachuHeader.HANR004A008 != None,
-            JuHachuHeader.HANR004A008 != ''
-        ).count()
-        
-        # Get waybills from picking data
         waybills = self.get_picking_waybills(picking_id)
         
         if not waybills:
-            # If we found orders with carriers assigned, and that's the same as the total order count,
-            # then all orders already have carriers assigned
-            if orders_with_carriers > 0 and orders_with_carriers == len(all_order_ids):
-                logger.info(f"All orders in picking ID {picking_id} already have carriers assigned")
-                return {
-                    "picking_id": picking_id,
-                    "waybill_count": 0,
-                    "selection_details": [],
-                    "success": True,
-                    "message": f"All orders in picking ID {picking_id} already have carriers assigned"
-                }
-            elif orders_with_carriers > 0:
-                # Some orders have carriers assigned, but not all
-                logger.warning(f"No eligible waybills found for picking ID {picking_id}, {orders_with_carriers} of {len(all_order_ids)} orders already have carriers assigned")
-                return {
-                    "picking_id": picking_id,
-                    "waybill_count": 0,
-                    "selection_details": [],
-                    "success": True,
-                    "message": f"No eligible waybills found for picking ID {picking_id}, {orders_with_carriers} of {len(all_order_ids)} orders already have carriers assigned"
-                }
-            else:
-                # No orders have carriers assigned, but there might be other issues
-                logger.warning(f"No waybills could be created from orders in picking ID {picking_id}")
-                return {
-                    "picking_id": picking_id,
-                    "waybill_count": 0,
-                    "selection_details": [],
-                    "success": False,
-                    "message": f"No waybills could be created from orders in picking ID {picking_id}. Check for missing product info or delivery details."
-                }
+            # No orders have carriers assigned, but there might be other issues
+            logger.warning(f"No waybills could be created from orders in picking ID {picking_id}")
+            return {
+                "picking_id": picking_id,
+                "waybill_count": 0,
+                "selection_details": [],
+                "success": False,
+                "message": f"No waybills could be created from orders in picking ID {picking_id}. Check for missing product info or delivery details."
+            }
             
         logger.info(f"Processing {len(waybills)} waybills for picking ID {picking_id}")
         
