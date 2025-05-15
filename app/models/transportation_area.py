@@ -17,10 +17,10 @@ class TransportationArea(Base):
     HANMA43002 = Column("HANMA43002", NVARCHAR(255), nullable=True)
 
     # 3. 距離（km） - Distance in KM
-    HANMA43003 = Column("HANMA43003", DECIMAL(5, 0), nullable=False, default=0)
+    HANMA43003 = Column("HANMA43003", DECIMAL(5, 0), nullable=False, server_default=text("0"))
 
     # 4. 更新番号 - Update Version Number, default 0 on insert, +1 on update
-    HANMA43999 = Column("HANMA43999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    HANMA43999 = Column("HANMA43999", DECIMAL(9, 0), autoincrement=True, nullable=False, server_default=text("0"))
 
     # 5. 登録日時 - Insert Timestamp (yyyymmddhhmiss.ffffff)
     HANMA43INS = Column("HANMA43INS", DECIMAL(20, 6), nullable=True, 
