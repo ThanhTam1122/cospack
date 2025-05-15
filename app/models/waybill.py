@@ -9,7 +9,7 @@ class Waybill(Base):
     """
     __tablename__ = "HAN99RA41CPOKURIJYO"
 
-    HANRA41001 = Column("HANRA41001", DECIMAL(10, 0), primary_key=True, nullable=False)  # 送り状識別連番
+    HANRA41001 = Column("HANRA41001", DECIMAL(10, 0),  nullable=False)  # 送り状識別連番
     HANRA41002 = Column("HANRA41002", DECIMAL(8, 0), nullable=True)  # 出荷予定日
     HANRA41003 = Column("HANRA41003", DECIMAL(8, 0), nullable=True)  # 納期日
     HANRA41004 = Column("HANRA41004", CHAR(11), nullable=True)  # 取引先コード
@@ -21,7 +21,7 @@ class Waybill(Base):
     HANRA41010 = Column("HANRA41010", NVARCHAR(32), nullable=True)  # 納品先住所1
     HANRA41011 = Column("HANRA41011", NVARCHAR(32), nullable=True)  # 納品先住所2
     HANRA41012 = Column("HANRA41012", NVARCHAR(32), nullable=True)  # 納品先住所3
-    HANRA41999 = Column("HANRA41999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0) #更新番号
+    HANRA41999 = Column("HANRA41999", DECIMAL(9, 0), primary_key=True, autoincrement=True, nullable=False, default=0) #更新番号
     HANRA41INS = Column("HANRA41INS", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
     )) #登録日時
