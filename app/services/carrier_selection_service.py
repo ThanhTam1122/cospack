@@ -38,7 +38,7 @@ class CarrierSelectionService:
         """
         try:
             # Remove any hyphens or spaces
-            postal_code = postal_code.replace("-", "").replace(" ", "")
+            postal_code = postal_code
             
             # Make API request
             url = f"https://postcode-jp.com/api/postcode/{postal_code}"
@@ -151,7 +151,6 @@ class CarrierSelectionService:
                 HANRA42006=selected_carrier,               # Selected carrier
                 HANRA42007=cheapest_carrier,               # Cheapest carrier
                 HANRA42008=reason,                         # Selection reason
-                HANRA42999=0,                              # Update number
             )
             
             self.db.add(log)
@@ -238,15 +237,15 @@ class CarrierSelectionService:
                 HANM009001=waybill_id,                    # Waybill code
                 HANM009002=shipping_date,                 # Planned shipping date
                 HANM009003=delivery_deadline,             # Delivery date
-                HANM009004=int(customer_code) if customer_code.isdigit() else 0,    # Customer code
-                HANM009005=delivery_info1[:128] if delivery_info1 else None,        # Delivery info 1
-                HANM009006=delivery_info2[:128] if delivery_info2 else None,        # Delivery info 2
-                HANM009007=delivery_name1[:64] if delivery_name1 else None,         # Delivery name 1
-                HANM009008=delivery_name2[:64] if delivery_name2 else None,         # Delivery name 2
-                HANM009009=postal_code[:16] if postal_code else None,               # Postal code
-                HANM009010=delivery_address1[:128] if delivery_address1 else None,  # Address 1
-                HANM009011=delivery_address2[:128] if delivery_address2 else None,  # Address 2
-                HANM009012=delivery_address3[:128] if delivery_address3 else None   # Address 3
+                HANM009004=customer_code,                 # Customer code
+                HANM009005=delivery_info1 if delivery_info1 else None,        # Delivery info 1
+                HANM009006=delivery_info2 if delivery_info2 else None,        # Delivery info 2
+                HANM009007=str(delivery_name1[:64]) if delivery_name1 else None,         # Delivery name 1
+                HANM009008=str(delivery_name2[:64]) if delivery_name2 else None,         # Delivery name 2
+                HANM009009=str(postal_code[:16]) if postal_code else None,               # Postal code
+                HANM009010=str(delivery_address1[:128]) if delivery_address1 else None,  # Address 1
+                HANM009011=str(delivery_address2[:128]) if delivery_address2 else None,  # Address 2
+                HANM009012=str(delivery_address3[:128]) if delivery_address3 else None   # Address 3
             )
             
             # Add to session and flush to get the ID
@@ -449,7 +448,7 @@ class CarrierSelectionService:
             # 6-11. Delivery destination info
             dest_name1 = header.HANR004A035 or ""
             dest_name2 = header.HANR004A036 or ""
-            dest_postal = (header.HANR004A037 or "").replace("-", "").strip()
+            dest_postal = (header.HANR004A037 or "").strip()
             dest_addr1 = header.HANR004A039 or ""
             dest_addr2 = header.HANR004A040 or ""
             dest_addr3 = header.HANR004A041 or ""
@@ -594,18 +593,6 @@ class CarrierSelectionService:
             dest_addr1 = waybill.get("dest_addr1", "")
             dest_addr2 = waybill.get("dest_addr2", "")
             dest_addr3 = waybill.get("dest_addr3", "")
-
-            print(f"customer_code       : {customer_code}")
-            print(f"shipping_date_str   : {shipping_date_str}")
-            print(f"delivery_date_str   : {delivery_date_str}")
-            print(f"delivery_info1      : {delivery_info1}")
-            print(f"delivery_info2      : {delivery_info2}")
-            print(f"dest_name1          : {dest_name1}")
-            print(f"dest_name2          : {dest_name2}")
-            print(f"dest_postal         : {dest_postal}")
-            print(f"dest_addr1          : {dest_addr1}")
-            print(f"dest_addr2          : {dest_addr2}")
-            print(f"dest_addr3          : {dest_addr3}")
             
             recent_headers = self.db.query(Waybill).filter(
                 Waybill.HANRA41004 == customer_code,    # Same customer
@@ -799,6 +786,9 @@ class CarrierSelectionService:
                 
                 # Determine if we should use the unassigned carrier code when no viable carriers exist
                 use_unassigned_code = False
+                
+                # Initialize reason_message with default value
+                reason_message = f"{selected_carrier['carrier_name']}が最適な運送会社として選択されました"
                 
                 if not [c for c in carrier_selection["carriers"] if c.get("is_capacity_available", False)]:
                     logger.info(f"No carriers with sufficient capacity/lead time, using unassigned code")

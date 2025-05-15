@@ -18,9 +18,9 @@ class PickingManagement(Base):
     
     # Timestamp columns - automatically populated on insert/update
     HANCA11INS = Column("HANCA11INS", DECIMAL(20, 6), nullable=False, 
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     HANCA11UPD = Column("HANCA11UPD", DECIMAL(20, 6), nullable=False,
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     
     # Relationships
     # picking_details = relationship("PickingDetail", back_populates="picking_header", cascade="all, delete-orphan", 
@@ -80,9 +80,9 @@ class PickingDetail(Base):
     
     HANC016999 = Column("HANC016999", DECIMAL, nullable=False, default=0)
     HANC016INS = Column("HANC016INS", DECIMAL(20, 6), nullable=False, 
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     HANC016UPD = Column("HANC016UPD", DECIMAL(20, 6), nullable=False,
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     
     # Relationships
     # picking_header = relationship("PickingManagement", back_populates="picking_details", 
@@ -263,9 +263,9 @@ class PickingWork(Base):
     
     # Timestamp columns - automatically populated
     HANW002INS = Column("HANW002INS", DECIMAL(20, 6), nullable=False, 
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     HANW002UPD = Column("HANW002UPD", DECIMAL(20, 6), nullable=False,
-                       default=text("CONVERT([decimal](20,6),replace(replace(replace(CONVERT([nvarchar](40),getdate(),(121)),'-',''),':',''),' ',''))"))
+                       server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"))
     
     # Regular decimal columns
     HANW002081 = Column("HANW002081", DECIMAL, nullable=False, default=0)
