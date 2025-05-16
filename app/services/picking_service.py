@@ -28,9 +28,6 @@ def get_pickings(
     Returns:
         Dict with pickings (list of pickings) and total count
     """
-    env = os.getenv("ENV", "production")  # default to production
-    excluded_carrier_code = os.getenv("CARRIER_CODE_TO_EXCLUDE", "95")
-
     # Create the base query joining all needed tables
     query = (
         db.query(
