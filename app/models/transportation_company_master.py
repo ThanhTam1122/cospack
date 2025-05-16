@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean, Float
+from sqlalchemy import Column
 from sqlalchemy.types import DECIMAL
-from sqlalchemy.dialects.mssql import NVARCHAR, CHAR, VARCHAR
-from sqlalchemy.sql.expression import text
+from sqlalchemy.dialects.mssql import CHAR
 from app.db.base import Base
 
 class TransportationCompanyMaster(Base):
