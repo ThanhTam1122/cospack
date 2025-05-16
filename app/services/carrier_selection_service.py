@@ -192,6 +192,7 @@ class CarrierSelectionService:
             The created waybill ID as a string, or empty string on failure
         """
         try:
+            #todo すでに同じ条件の送り状があれば、そちらのidを返すようにお願いいたします
             waybill_id = waybill_id = int(time.time() * 1000) % 10**10
             
             # Create new waybill record

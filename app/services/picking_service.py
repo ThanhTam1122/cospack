@@ -55,17 +55,13 @@ def get_pickings(
                 JuHachuHeader.HANR004005 == PickingWork.HANW002002
             )
         )
-        .filter(
-            PickingManagement.HANCA11002 == 0
-        )
     )
 
     # Carrier code exclusion logic
     if not settings.ENV == "Development":
         query = query.filter(
-            or_(
+            PickingManagement.HANCA11002 == 0,
                 PickingWork.HANW002A003 == settings.CARRIER_UNASSIGNED_CODE
-            )
         )
 
     query = query.group_by(
