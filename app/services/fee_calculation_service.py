@@ -41,11 +41,11 @@ class FeeCalculationService:
             
         try:
             mapping = self.db.query(PostalJISMapping).filter(
-                PostalJISMapping.HANMA45002 == postal_code
+                PostalJISMapping.HANMA45001 == postal_code
             ).first()
             
             if mapping:
-                return mapping.HANMA45001
+                return mapping.HANMA45002
             
             return None
             
@@ -508,7 +508,7 @@ class FeeCalculationService:
             TransportationCapacity.HANMA47001 == carrier_code
         ).first()
         
-        # If no capacity constraints found, assume carrier has capacity
+        # If no capacity constraints found, assume UNLIMITED capacity
         if not capacity:
             logger.info(f"No capacity constraints found for carrier '{carrier_code}' - assuming unlimited capacity")
             return True
@@ -517,19 +517,24 @@ class FeeCalculationService:
         max_volume = self.to_float(capacity.HANMA47002)
         max_weight = self.to_float(capacity.HANMA47003)
         volume_weight_ratio = self.to_float(capacity.HANMA47004)
+        
+        # If both max_volume and max_weight are 0 or undefined, treat as UNLIMITED capacity
+        if (max_volume == 0) and (max_weight == 0):
+            logger.info(f"Carrier '{carrier_code}' has undefined capacity limits - treating as unlimited")
+            return True
             
-        # Check volume constraint
+        # Check volume constraint only if defined (greater than 0)
         if max_volume > 0 and volume > max_volume:
             logger.warning(f"Carrier '{carrier_code}' capacity exceeded: volume {volume} > max {max_volume}")
             return False
             
-        # Check weight constraint
+        # Check weight constraint only if defined (greater than 0)
         if max_weight > 0 and weight > max_weight:
             logger.warning(f"Carrier '{carrier_code}' capacity exceeded: weight {weight} > max {max_weight}")
             return False
         
-        # Check if we need to apply volume-to-weight conversion
-        if volume_weight_ratio > 0:
+        # Check volume-to-weight conversion only if the ratio is defined
+        if volume_weight_ratio > 0 and max_weight > 0:
             # Convert volume to equivalent weight
             volume_as_weight = volume * volume_weight_ratio
             if volume_as_weight > max_weight:
@@ -567,21 +572,26 @@ class FeeCalculationService:
             SpecialCapacity.HANMA48002 == shipping_date_int
         ).first()
         
-        # If no special capacity record exists, capacity is unlimited
+        # If no special capacity record exists, assume UNLIMITED capacity
         if not special_capacity:
-            logger.info(f"No special capacity restrictions for carrier '{carrier_code}' on {shipping_date_int}")
+            logger.info(f"No special capacity restrictions for carrier '{carrier_code}' on {shipping_date_int} - assuming unlimited")
             return True
         
         # Convert capacity values to float to avoid Decimal/float type issues
         max_volume = self.to_float(special_capacity.HANMA48003)
         max_weight = self.to_float(special_capacity.HANMA48004)
         
-        # Check volume constraint
+        # If both max_volume and max_weight are 0 or undefined, treat as UNLIMITED capacity
+        if (max_volume == 0) and (max_weight == 0):
+            logger.info(f"Carrier '{carrier_code}' has undefined special capacity limits - treating as unlimited")
+            return True
+            
+        # Check volume constraint only if defined (greater than 0)
         if max_volume > 0 and volume > max_volume:
             logger.warning(f"Carrier '{carrier_code}' special capacity exceeded: volume {volume} > max {max_volume}")
             return False
             
-        # Check weight constraint
+        # Check weight constraint only if defined (greater than 0)
         if max_weight > 0 and weight > max_weight:
             logger.warning(f"Carrier '{carrier_code}' special capacity exceeded: weight {weight} > max {max_weight}")
             return False
@@ -910,10 +920,12 @@ class FeeCalculationService:
                 return {
                     "success": False,
                     "message": "条件を満たす運送会社がありません",
+                    "cheapest_carrier": lowest_cost_carrier,  # Always include the cheapest carrier
                     "carriers": carrier_results,
                     "selection_flags": {
-                        "no_carriers_with_capacity": True,
-                        "cannot_meet_delivery_date": True
+                        "no_carriers_with_capacity": not any(c["is_capacity_available"] for c in carrier_results),
+                        "cannot_meet_delivery_date": not any(c["meets_deadline"] for c in carrier_results),
+                        "cheapest_carrier_logged": lowest_cost_carrier is not None
                     }
                 }
             

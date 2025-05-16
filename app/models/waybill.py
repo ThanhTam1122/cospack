@@ -9,7 +9,7 @@ class Waybill(Base):
     """
     __tablename__ = "HAN99RA41CPOKURIJYO"
 
-    HANRA41001 = Column("HANRA41001", DECIMAL(10, 0),  nullable=False)  # 送り状識別連番
+    HANRA41001 = Column("HANRA41001", DECIMAL(10, 0), primary_key=True,  nullable=False)  # 送り状識別連番
     HANRA41002 = Column("HANRA41002", DECIMAL(8, 0), nullable=True)  # 出荷予定日
     HANRA41003 = Column("HANRA41003", DECIMAL(8, 0), nullable=True)  # 納期日
     HANRA41004 = Column("HANRA41004", CHAR(11), nullable=True)  # 取引先コード

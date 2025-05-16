@@ -1,15 +1,16 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
+from sqlalchemy import desc, and_
 from typing import List, Optional, Dict, Any, Tuple
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
+import time
 import math
 import requests
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from app.core.config import settings
 
-from app.models.picking import PickingManagement, PickingDetail, PickingWork
+from app.models.picking import PickingManagement, PickingWork
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.carrier_selection_log import CarrierSelectionLog
 from app.models.carrier_selection_log_detail import CarrierSelectionLogDetail
@@ -64,20 +65,6 @@ class CarrierSelectionService:
             logger.error(f"Error fetching JIS code for postal code {postal_code}: {str(e)}")
             return None
 
-    def get_area_code_from_jis_code(self, jis_code: str) -> Optional[int]:
-        """
-        Get transportation area code from JIS address code
-        """
-        mapping = self.db.query(TransportationAreaJISMapping).filter(
-            TransportationAreaJISMapping.HANM007002 == jis_code
-        ).first()
-        
-        if mapping:
-            return mapping.HANM007001
-        
-        logger.warning(f"Could not find transportation area for JIS code {jis_code}")
-        return None
-
     def calculate_package_metrics(self, products: List[Dict[str, Any]]) -> Tuple[int, float, float, float, List[Dict[str, Any]]]:
         """
         Calculate package metrics based on products
@@ -87,41 +74,6 @@ class CarrierSelectionService:
         """
         # Use the fee calculator service to get detailed product metrics
         return self.fee_calculator.calculate_package_metrics(products)
-
-    def check_carrier_capacity(self, carrier_code: str, volume: float, weight: float) -> bool:
-        """
-        Check if the carrier has enough capacity for this shipment
-        """
-        # Use the fee calculator service to check carrier capacity
-        return self.fee_calculator.check_carrier_capacity(
-            carrier_code=carrier_code,
-            volume=volume,
-            weight=weight
-        )
-
-    def check_special_capacity(self, carrier_code: str, shipping_date: date, volume: float, weight: float) -> bool:
-        """
-        Check if the carrier has special capacity limitations for the shipping date
-        """
-        # Use the fee calculator service to check special capacity
-        return self.fee_calculator.check_special_capacity(
-            carrier_code=carrier_code,
-            shipping_date=shipping_date,
-            volume=volume,
-            weight=weight
-        )
-
-    def calculate_lead_time(self, carrier_code: str, prefecture_code: str, 
-                          shipping_date: date) -> Optional[int]:
-        """
-        Calculate lead time based on carrier, prefecture, and shipping date
-        """
-        # Use the fee calculator service to calculate lead time
-        return self.fee_calculator.calculate_lead_time(
-            carrier_code=carrier_code,
-            prefecture_code=prefecture_code,
-            shipping_date=shipping_date
-        )
 
     def save_carrier_selection_log(self, waybill_id: str, parcel_count: int, 
                                  volume: float, weight: float, size: float,
@@ -158,39 +110,51 @@ class CarrierSelectionService:
             
             # Add product details if provided
             if products and log.HANRA42001:
-                # Check if product details already exist
+                # Delete any existing details for this log ID
                 existing_details = self.db.query(CarrierSelectionLogDetail).filter(
                     CarrierSelectionLogDetail.HANRA43001 == log.HANRA42001
                 ).all()
                 
                 if existing_details:
-                    # Delete existing details to replace with new ones
                     for detail in existing_details:
                         self.db.delete(detail)
                 
+                # Process each product
                 for product in products:
-                    product_code = product["product_code"]
-                    dimensions = product.get("outer_box_dimensions", [{}])[0] if product.get("outer_box_dimensions") else {}
-                    size = self.to_float(
-                        dimensions.get("length", 0) + 
-                        dimensions.get("width", 0) + 
-                        dimensions.get("height", 0)
-                    )
-                    
-                    outer_box_count = self.to_float(product.get("outer_box_count", 1) or 1)
-                    quantity = self.to_float(product.get("quantity", 0) or 0)
-                    
-                    box_count = math.ceil(quantity / outer_box_count)
-                    
-                    detail = CarrierSelectionLogDetail(
-                        HANRA43001=log.HANRA42001,       # Log ID
-                        HANRA43002=product_code,         # Product code
-                        HANRA43003=self.to_float(size),  # Size
-                        HANRA43004=self.to_float(box_count),  # Box count
-                        HANRA43999=0, # Update number defaulting to 0
-                    )
-                    
-                    self.db.add(detail)
+                    try:
+                        # Extract product code and truncate if needed
+                        product_code = product.get("product_code", "")
+                        if isinstance(product_code, str) and len(product_code) > 8:
+                            product_code = product_code[:8]
+                            logger.warning(f"Product code truncated to 8 chars: {product_code}")
+                        
+                        # Calculate size from dimensions
+                        dimensions = product.get("outer_box_dimensions", [{}])[0] if product.get("outer_box_dimensions") else {}
+                        size = self.to_float(
+                            dimensions.get("length", 0) + 
+                            dimensions.get("width", 0) + 
+                            dimensions.get("height", 0)
+                        )
+                        
+                        # Calculate box count
+                        outer_box_count = self.to_float(product.get("outer_box_count", 1) or 1)
+                        quantity = self.to_float(product.get("quantity", 0) or 0)
+                        box_count = math.ceil(quantity / outer_box_count)
+                        
+                        # Create new detail record
+                        detail = CarrierSelectionLogDetail(
+                            HANRA43001=log.HANRA42001,       # Log ID
+                            HANRA43002=product_code,         # Product code
+                            HANRA43003=self.to_float(size),  # Size
+                            HANRA43004=self.to_float(box_count)  # Box count
+                        )
+                        
+                        # Add to session
+                        self.db.add(detail)
+                        
+                    except Exception as e:
+                        logger.error(f"Error processing log detail for product {product.get('product_code', 'unknown')}: {str(e)}")
+                        # Continue with other products
             
             # Commit to save the log
             self.db.commit()
@@ -202,7 +166,7 @@ class CarrierSelectionService:
             logger.error(f"Error saving carrier selection log: {str(e)}")
             return ""
 
-    def update_database(self, shipping_date: date, delivery_deadline: date,
+    def update_database(self, shipping_date: str, delivery_deadline: str,
                         customer_code: str, postal_code: str = "",
                         delivery_info1: str = "", delivery_info2: str = "",
                         delivery_name1: str = "", delivery_name2: str = "",
@@ -228,24 +192,22 @@ class CarrierSelectionService:
             The created waybill ID as a string, or empty string on failure
         """
         try:
-            # Generate waybill ID with timestamp (WB + YYYYMMDDhhmmss)
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            waybill_id = f"WB{timestamp}"
+            waybill_id = waybill_id = int(time.time() * 1000) % 10**10
             
             # Create new waybill record
             waybill = Waybill(
-                HANM009001=waybill_id,                    # Waybill code
-                HANM009002=shipping_date,                 # Planned shipping date
-                HANM009003=delivery_deadline,             # Delivery date
-                HANM009004=customer_code,                 # Customer code
-                HANM009005=delivery_info1 if delivery_info1 else None,        # Delivery info 1
-                HANM009006=delivery_info2 if delivery_info2 else None,        # Delivery info 2
-                HANM009007=str(delivery_name1[:64]) if delivery_name1 else None,         # Delivery name 1
-                HANM009008=str(delivery_name2[:64]) if delivery_name2 else None,         # Delivery name 2
-                HANM009009=str(postal_code[:16]) if postal_code else None,               # Postal code
-                HANM009010=str(delivery_address1[:128]) if delivery_address1 else None,  # Address 1
-                HANM009011=str(delivery_address2[:128]) if delivery_address2 else None,  # Address 2
-                HANM009012=str(delivery_address3[:128]) if delivery_address3 else None   # Address 3
+                HANRA41001=waybill_id,                    # Waybill code
+                HANRA41002=int(shipping_date.strftime("%Y%m%d")),                 # Planned shipping date
+                HANRA41003=int(delivery_deadline.strftime("%Y%m%d")),             # Delivery date
+                HANRA41004=customer_code,                 # Customer code
+                HANRA41005=int(delivery_info1) if delivery_info1 not in (None, "") else None,        # Delivery info 1
+                HANRA41006=int(delivery_info2) if delivery_info2 not in (None, "") else None,        # Delivery info 2
+                HANRA41007=str(delivery_name1[:64]) if delivery_name1 else None,         # Delivery name 1
+                HANRA41008=str(delivery_name2[:64]) if delivery_name2 else None,         # Delivery name 2
+                HANRA41009=str(postal_code[:16]) if postal_code else None,               # Postal code
+                HANRA41010=str(delivery_address1[:128]) if delivery_address1 else None,  # Address 1
+                HANRA41011=str(delivery_address2[:128]) if delivery_address2 else None,  # Address 2
+                HANRA41012=str(delivery_address3[:128]) if delivery_address3 else None   # Address 3
             )
             
             # Add to session and flush to get the ID
@@ -585,8 +547,6 @@ class CarrierSelectionService:
             delivery_date = waybill.get("delivery_date", "")
             shipping_date_str = shipping_date.strftime("%Y%m%d") if shipping_date else ""
             delivery_date_str = delivery_date.strftime("%Y%m%d") if delivery_date else ""
-            delivery_info1 = waybill.get("delivery_info1", "")
-            delivery_info2 = waybill.get("delivery_info2", "")
             dest_name1 = waybill.get("dest_name1", "")
             dest_name2 = waybill.get("dest_name2", "")
             dest_postal = waybill.get("dest_postal", "")
@@ -594,24 +554,39 @@ class CarrierSelectionService:
             dest_addr2 = waybill.get("dest_addr2", "")
             dest_addr3 = waybill.get("dest_addr3", "")
             
+            filters = [
+                Waybill.HANRA41004 == customer_code,
+                Waybill.HANRA41002 == shipping_date_str,
+                Waybill.HANRA41003 == delivery_date_str,
+                Waybill.HANRA41007 == dest_name1,
+                Waybill.HANRA41008 == dest_name2,
+                Waybill.HANRA41009 == dest_postal,
+                Waybill.HANRA41010 == dest_addr1,
+                Waybill.HANRA41011 == dest_addr2,
+                Waybill.HANRA41012 == dest_addr3,
+            ]
+
+            delivery_info1 = waybill.get("delivery_info1")
+            if delivery_info1 not in [None, ""]:
+                try:
+                    filters.append(Waybill.HANRA41005 == Decimal(delivery_info1))
+                except (InvalidOperation, ValueError, TypeError):
+                    pass
+
+            delivery_info2 = waybill.get("delivery_info2")
+            if delivery_info2 not in [None, ""]:
+                try:
+                    filters.append(Waybill.HANRA41006 == Decimal(delivery_info2))
+                except (InvalidOperation, ValueError, TypeError):
+                    pass
+
             recent_headers = self.db.query(Waybill).filter(
-                Waybill.HANRA41004 == customer_code,    # Same customer
-                Waybill.HANRA41002 == shipping_date_str,    # Same shipping date
-                Waybill.HANRA41003 == delivery_date_str,    # Same delivery date
-                Waybill.HANRA41005 == delivery_info1,  # Same delivery infomation1
-                Waybill.HANRA41006 == delivery_info2,  # Same delivery_infomation2
-                Waybill.HANRA41007 == dest_name1,      # Same destination name1
-                Waybill.HANRA41008 == dest_name2,      # Same destination name2
-                Waybill.HANRA41009 == dest_postal,     # Same destination postal code
-                Waybill.HANRA41010 == dest_addr1,      # Same delivery address1
-                Waybill.HANRA41011 == dest_addr2,      # Same delivery address2
-                Waybill.HANRA41012 == dest_addr3,      # Same delivery address3
+                and_(*filters)
             ).order_by(
-                desc(Waybill.HANRA41002)                # Most recent by update date
+                desc(Waybill.HANRA41002)
             ).limit(10).all()
 
-            if recent_headers and len(recent_headers) > 0:
-                # Return the most recently used carrier for the same destination
+            if recent_headers:
                 waybill_code = recent_headers[0].HANRA41001
 
                 carrier_selection_log = self.db.query(CarrierSelectionLog).filter(
@@ -619,12 +594,15 @@ class CarrierSelectionService:
                 ).order_by(
                     desc(CarrierSelectionLog.HAN10M010_INS)
                 ).limit(10).all()
-                
-                if carrier_selection_log and len(carrier_selection_log) > 0:
+
+                if carrier_selection_log:
                     return carrier_selection_log[0].HANRA42007
+
         except Exception as e:
             logger.error(f"Error in find_previous_carrier_for_waybill: {str(e)}")
-            return None
+
+        return None
+
 
     def select_carriers_for_picking(self, picking_id: int) -> Dict[str, Any]:
         """
@@ -760,10 +738,92 @@ class CarrierSelectionService:
                     previous_carrier=previous_carrier
                 )
                 
+                # Always check for the cheapest carrier, even if selection failed
+                cheapest_carrier = carrier_selection.get("cheapest_carrier")
+                
                 if not carrier_selection["success"]:
                     logger.warning(f"Carrier selection failed for waybill {waybill_index}, customer: '{customer_code}', reason: {carrier_selection['message']}")
-                    failed_selections += 1
-                    continue
+                    
+                    # If we have a cheapest carrier but it doesn't meet our constraints,
+                    # we'll still create a waybill with the unassigned carrier code
+                    if cheapest_carrier:
+                        logger.info(f"Using fallback: Found cheapest carrier {cheapest_carrier['carrier_code']} but it doesn't meet constraints")
+                        
+                        # Create a waybill with unassigned carrier and log the selection
+                        waybill_id = self.update_database(
+                            shipping_date=waybill["shipping_date"],
+                            delivery_deadline=waybill["delivery_date"],
+                            customer_code=customer_code,
+                            postal_code=waybill.get("dest_postal", ""),
+                            delivery_info1=waybill.get("delivery_info1", ""),
+                            delivery_info2=waybill.get("delivery_info2", ""),
+                            delivery_name1=waybill.get("dest_name1", ""),
+                            delivery_name2=waybill.get("dest_name2", ""),
+                            delivery_address1=waybill.get("dest_addr1", ""),
+                            delivery_address2=waybill.get("dest_addr2", ""),
+                            delivery_address3=waybill.get("dest_addr3", "")
+                        )
+                        
+                        if not waybill_id:
+                            logger.warning(f"Failed to create waybill record for waybill {waybill_index}")
+                            failed_selections += 1
+                            continue
+                        
+                        # Build detailed reason message for logging
+                        reason_message = f"条件を満たす運送会社なし: 最安値 {cheapest_carrier['carrier_code']} (¥{cheapest_carrier['cost']}) が使用できません" 
+                        
+                        # Save selection to log with cheapest carrier information
+                        log_id = self.save_carrier_selection_log(
+                            waybill_id=waybill_id,
+                            parcel_count=int(parcels),
+                            volume=volume,
+                            weight=weight,
+                            size=max_size,
+                            selected_carrier=settings.CARRIER_UNASSIGNED_CODE,
+                            cheapest_carrier=cheapest_carrier['carrier_code'],
+                            reason=reason_message,
+                            products=waybill["products"]
+                        )
+                        
+                        if not log_id:
+                            logger.warning(f"Failed to save carrier selection log for waybill {waybill_index}")
+                            failed_selections += 1
+                            continue
+                        
+                        # Update SmileV database tables with unassigned carrier code
+                        smilev_update_success = self.update_smilev_database(
+                            waybill_id=waybill_id,
+                            carrier_code=settings.CARRIER_UNASSIGNED_CODE,
+                            order_ids=waybill["order_ids"],
+                            picking_works=waybill["picking_works"]
+                        )
+                        
+                        if not smilev_update_success:
+                            logger.warning(f"Failed to update SmileV database for waybill {waybill_index}")
+                            failed_selections += 1
+                            continue
+                        
+                        # Add to results
+                        selection_details.append({
+                            "waybill_id": waybill_id,
+                            "parcel_count": int(parcels),
+                            "volume": volume,
+                            "weight": weight,
+                            "size": max_size,
+                            "carrier_estimates": self._format_carrier_estimates(carrier_selection["carriers"]),
+                            "selected_carrier_code": settings.CARRIER_UNASSIGNED_CODE,
+                            "cheapest_carrier_code": cheapest_carrier['carrier_code'],
+                            "selection_reason": reason_message,
+                            "selected_carrier_name": "未割当",
+                            "is_unassigned": True
+                        })
+                        
+                        successful_selections += 1
+                        logger.info(f"Waybill {waybill_index} processed with unassigned carrier and cheapest carrier logged")
+                        continue
+                    else:
+                        failed_selections += 1
+                        continue
                     
                 logger.info(f"Carrier selection successful for waybill {waybill_index}")
                 
@@ -784,17 +844,12 @@ class CarrierSelectionService:
                         if viable_cheapest_carrier is None or carrier["cost"] < viable_cheapest_carrier["cost"]:
                             viable_cheapest_carrier = carrier
                 
-                # Determine if we should use the unassigned carrier code when no viable carriers exist
-                use_unassigned_code = False
-                
                 # Initialize reason_message with default value
                 reason_message = f"{selected_carrier['carrier_name']}が最適な運送会社として選択されました"
                 
                 if not [c for c in carrier_selection["carriers"] if c.get("is_capacity_available", False)]:
                     logger.info(f"No carriers with sufficient capacity/lead time, using unassigned code")
                     final_carrier_code = settings.CARRIER_UNASSIGNED_CODE
-                    use_unassigned_code = True
-                    reason_message = f"全ての運送会社がリードタイムまたはキャパシティを超過、最安: {viable_cheapest_carrier['carrier_code']}"
                 
                 # Log the decision
                 logger.info(f"Final carrier selection: '{final_carrier_code}', reason: {reason_message}")
