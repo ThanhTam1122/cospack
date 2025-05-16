@@ -408,7 +408,7 @@ class FeeCalculationService:
         total_fee = 0.0
         
         # Process each parcel separately based on its size
-        for parcel in parcels:
+        for parcel in parcels: #todo fee_typeが3の場合は個口ごとに計算ですが、他はまとめて計算する必要があります
             parcel_size = self.to_float(parcel.get("size", size))
             parcel_count = self.to_int(parcel.get("count", 1))
             
