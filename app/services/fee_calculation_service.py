@@ -161,6 +161,7 @@ class FeeCalculationService:
             width = getattr(product_sub, width_attr, 0) if hasattr(product_sub, width_attr) else 0
             depth = getattr(product_sub, depth_attr, 0) if hasattr(product_sub, depth_attr) else 0
             height = getattr(product_sub, height_attr, 0) if hasattr(product_sub, height_attr) else 0
+            # todo これおそらく単位がmmですね。cmに直すために / 10 の必要がありそうでした。
             
             # Add dimensions for this box
             result["outer_box_dimensions"].append({
@@ -461,7 +462,7 @@ class FeeCalculationService:
                 # Type 2: Volume-based price
                 if volume_unit_price > 0:
                     parcel_volume = volume / len(parcels) * parcel_count
-                    billable_volume = max(0, parcel_volume - min_threshold)
+                    billable_volume = max(0, parcel_volume - min_threshold) #todo 整数に切り上げでお願いします。
                     volume_fee = billable_volume * volume_unit_price
                     parcel_fee = base_fee + volume_fee
                 else:
@@ -770,6 +771,7 @@ class FeeCalculationService:
             
             # Get area code from JIS code
             area_code = self.get_area_code_from_jis(jis_code)
+            #todo jis_codeからarea_codeは複数決まるので、areaでループが必要になります。
             if not area_code:
                 return {
                     "success": False,
