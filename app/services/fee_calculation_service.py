@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm (1 volume unit = 30.3cm cube)
 VOLUME_TO_WEIGHT_RATIO = 8  # 1 volume (30.3cm cube) = 8kg
-MAX_SET_PARCEL_COUNT = 100  # Maximum supported set parcel count
+MAX_SET_PARCEL_COUNT = 5  # Maximum supported set parcel count
 
 
 class FeeCalculationService:
@@ -53,27 +53,41 @@ class FeeCalculationService:
             logger.error(f"Error fetching JIS code for postal code {postal_code}: {str(e)}")
             return None
 
-    def get_area_code_from_jis(self, jis_code: str) -> Optional[int]:
+    def get_area_codes_from_jis(self, jis_code: str) -> List[int]:
         """
-        Get transportation area code from JIS address code
+        Get all transportation area codes associated with a JIS address code
+        
+        For each postal code and carrier combination, there should be one optimal shipping fee.
+        Different carriers may have different area classifications for the same location,
+        so we need to check all possible area codes and choose the one with the lowest fee.
+        
+        Args:
+            jis_code: JIS address code
+            
+        Returns:
+            List of area codes associated with the JIS code
         """
         if not jis_code:
-            return None
+            return []
             
         try:
-            mapping = self.db.query(TransportationAreaJISMapping).filter(
+            # Query all mappings for this JIS code
+            mappings = self.db.query(TransportationAreaJISMapping).filter(
                 TransportationAreaJISMapping.HANMA44002 == jis_code
-            ).first()
+            ).all()
             
-            if mapping:
-                return mapping.HANMA44001
+            if not mappings:
+                logger.warning(f"Could not find transportation areas for JIS code {jis_code}")
+                return []
             
-            logger.warning(f"Could not find transportation area for JIS code {jis_code}")
-            return None
+            # Extract all area codes
+            area_codes = [mapping.HANMA44001 for mapping in mappings]
+            logger.info(f"Found {len(area_codes)} area codes for JIS code {jis_code}: {area_codes}")
+            return area_codes
             
         except Exception as e:
-            logger.error(f"Error fetching area code for JIS code {jis_code}: {str(e)}")
-            return None
+            logger.error(f"Error fetching area codes for JIS code {jis_code}: {str(e)}")
+            return []
 
     def trim_string(self, value: Any) -> str:
         """
@@ -142,7 +156,7 @@ class FeeCalculationService:
             "outer_box_dimensions": []
         }
         
-        # Add outer box dimensions (up to 5 sets depending on set_parcel_count)
+        # Add outer box dimensions (up to 100 sets depending on set_parcel_count)
         max_boxes = min(result["set_parcel_count"], MAX_SET_PARCEL_COUNT)
         
         # If set_parcel_count > MAX_SET_PARCEL_COUNT, log a warning
@@ -161,14 +175,18 @@ class FeeCalculationService:
             width = getattr(product_sub, width_attr, 0) if hasattr(product_sub, width_attr) else 0
             depth = getattr(product_sub, depth_attr, 0) if hasattr(product_sub, depth_attr) else 0
             height = getattr(product_sub, height_attr, 0) if hasattr(product_sub, height_attr) else 0
-            # todo これおそらく単位がmmですね。cmに直すために / 10 の必要がありそうでした。
+            
+            # Convert from mm to cm by dividing by 10
+            width = float(width or 0) / 10
+            depth = float(depth or 0) / 10
+            height = float(height or 0) / 10
             
             # Add dimensions for this box
             result["outer_box_dimensions"].append({
                 "box_num": box_num,
-                "length": float(width or 0),    # W
-                "width": float(depth or 0),     # D
-                "height": float(height or 0)    # H
+                "length": width,    # W
+                "width": depth,     # D
+                "height": height    # H
             })
             
         logger.info(f"Product info retrieved for '{product_code}': volume={result['volume_per_unit']}, weight={result['weight_per_unit']}, outer_box_count={result['outer_box_count']}")
@@ -407,11 +425,18 @@ class FeeCalculationService:
         # Calculate fee for each parcel size separately
         total_fee = 0.0
         
-        # Process each parcel separately based on its size
-        for parcel in parcels: #todo fee_typeが3の場合は個口ごとに計算ですが、他はまとめて計算する必要があります
+        # Group parcels by size for collective fee calculation
+        parcels_by_size = {}
+        for parcel in parcels:
             parcel_size = self.to_float(parcel.get("size", size))
             parcel_count = self.to_int(parcel.get("count", 1))
             
+            if parcel_size not in parcels_by_size:
+                parcels_by_size[parcel_size] = 0
+            parcels_by_size[parcel_size] += parcel_count
+        
+        # Process each parcel size
+        for parcel_size, total_count in parcels_by_size.items():
             # Find the appropriate fee record for this parcel size
             applicable_records = []
             for record in fee_records:
@@ -446,38 +471,41 @@ class FeeCalculationService:
             applicable_records.sort(key=record_specificity, reverse=True)
             selected_record = applicable_records[0]
             
-            # Calculate fee for this parcel based on its size
+            # Calculate fee based on fee type
             fee_type = self.to_int(selected_record.HANMA46010)
             base_fee = self.to_float(selected_record.HANMA46009)
             volume_unit_price = self.to_float(selected_record.HANMA46007)
             min_threshold = self.to_float(selected_record.HANMA46008)
             
-            parcel_fee = 0.0
-            
             if fee_type == 1:
-                # Type 1: Fixed amount
-                parcel_fee = base_fee
+                # Type 1: Fixed amount - apply once for all parcels of this size
+                total_fee += base_fee
             
             elif fee_type == 2:
-                # Type 2: Volume-based price
+                # Type 2: Volume-based price - calculate collectively for all parcels of this size
                 if volume_unit_price > 0:
-                    parcel_volume = volume / len(parcels) * parcel_count
-                    billable_volume = max(0, parcel_volume - min_threshold) #todo 整数に切り上げでお願いします。
+                    # Calculate the proportion of total volume for this parcel size
+                    total_parcel_count = sum(p.get("count", 1) for p in parcels)
+                    size_proportion = total_count / total_parcel_count
+                    parcel_volume = volume * size_proportion
+                    
+                    # Apply min threshold once for the collective calculation
+                    billable_volume = max(0, parcel_volume - min_threshold)
+                    # Round up to integer
+                    billable_volume = math.ceil(billable_volume)
                     volume_fee = billable_volume * volume_unit_price
-                    parcel_fee = base_fee + volume_fee
+                    total_fee += base_fee + volume_fee
                 else:
-                    parcel_fee = base_fee
+                    total_fee += base_fee
             
             elif fee_type == 3:
-                # Type 3: Per parcel
-                parcel_fee = base_fee * parcel_count
+                # Type 3: Per parcel - calculate separately for each individual parcel
+                total_fee += base_fee * total_count
             
             else:
                 # Unknown fee type, use base fee
                 logger.warning(f"Unknown fee type {fee_type} for size {parcel_size}, using base fee {base_fee}")
-                parcel_fee = base_fee * parcel_count
-            
-            total_fee += parcel_fee
+                total_fee += base_fee
         
         if total_fee <= 0:
             logger.warning(f"Calculated fee is zero or negative ({total_fee}), using null")
@@ -769,10 +797,9 @@ class FeeCalculationService:
                     "carriers": []
                 }
             
-            # Get area code from JIS code
-            area_code = self.get_area_code_from_jis(jis_code)
-            #todo jis_codeからarea_codeは複数決まるので、areaでループが必要になります。
-            if not area_code:
+            # Get area codes from JIS code (multiple area codes may be associated with one JIS code)
+            area_codes = self.get_area_codes_from_jis(jis_code)
+            if not area_codes:
                 return {
                     "success": False,
                     "message": f"JISコード {jis_code} に対応する配送エリアが見つかりません",
@@ -790,69 +817,78 @@ class FeeCalculationService:
                 carrier_code = carrier.HANMA02001
                 carrier_name = carrier.HANMA02002
                 
-                # Calculate shipping fee
-                shipping_fee = self.calculate_shipping_fee(
-                    carrier_code=carrier_code,
-                    area_code=area_code,
-                    parcels=parcels,
-                    volume=volume,
-                    weight=weight,
-                    size=size
-                )
+                # For each carrier, try all area codes and find the best shipping fee
+                lowest_fee = float('inf')
+                best_result = None
                 
-                if shipping_fee is None:
-                    # Skip carriers where fee calculation fails
-                    continue
-                
-                # Track lowest cost carrier regardless of other constraints
-                if shipping_fee < lowest_cost:
-                    lowest_cost = shipping_fee
-                    lowest_cost_carrier = {
-                        "carrier_code": carrier_code,
-                        "carrier_name": carrier_name,
-                        "cost": shipping_fee
-                    }
-                
-                # Calculate delivery date
-                est_delivery_date, lead_time = self.calculate_delivery_date(
-                    carrier_code=carrier_code,
-                    area_code=area_code,
-                    jis_code=jis_code,
-                    shipping_date=shipping_date
-                )
-                
-                if est_delivery_date is None:
-                    # Skip carriers where delivery date calculation fails
-                    continue
-                
-                has_capacity = self.check_carrier_capacity(carrier_code, volume, weight)
-                
-                # Check special capacity (if any) for the shipping date
-                has_special_capacity = self.check_special_capacity(carrier_code, shipping_date, volume, weight)
-                
-                # Check if the carriers can meet the delivery deadline
-                meets_deadline = est_delivery_date <= delivery_deadline
-                
-                # Determine if carrier is available for selection
-                is_available = has_capacity and has_special_capacity and meets_deadline
-                
-                carrier_results.append({
-                    "carrier_code": carrier_code,
-                    "carrier_name": carrier_name,
-                    "parcels": parcels,
-                    "volume": volume,
-                    "weight": weight,
-                    "size": size,
-                    "cost": shipping_fee,
-                    "lead_time": lead_time,
-                    "estimated_delivery_date": est_delivery_date.isoformat(),
-                    "meets_deadline": meets_deadline,
-                    "is_capacity_available": has_capacity and has_special_capacity,
-                    "unavailable_reason": "" if is_available else self._get_unavailability_reason(
-                        has_capacity, has_special_capacity, True, "", 
-                        meets_deadline, est_delivery_date, delivery_deadline
+                for area_code in area_codes:
+                    # Calculate shipping fee for this area code
+                    shipping_fee = self.calculate_shipping_fee(
+                        carrier_code=carrier_code,
+                        area_code=area_code,
+                        parcels=parcels,
+                        volume=volume,
+                        weight=weight,
+                        size=size
                     )
-                })
+                    
+                    if shipping_fee is None:
+                        # Skip this area code if fee calculation fails
+                        continue
+                        
+                    # Calculate delivery date
+                    est_delivery_date, lead_time = self.calculate_delivery_date(
+                        carrier_code=carrier_code,
+                        area_code=area_code,
+                        jis_code=jis_code,
+                        shipping_date=shipping_date
+                    )
+                    
+                    if est_delivery_date is None:
+                        # Skip this area code if delivery date calculation fails
+                        continue
+                    
+                    # Keep track of the lowest shipping fee for this carrier
+                    if shipping_fee < lowest_fee:
+                        lowest_fee = shipping_fee
+                        
+                        has_capacity = self.check_carrier_capacity(carrier_code, volume, weight)
+                        has_special_capacity = self.check_special_capacity(carrier_code, shipping_date, volume, weight)
+                        meets_deadline = est_delivery_date <= delivery_deadline
+                        is_available = has_capacity and has_special_capacity and meets_deadline
+                        
+                        # Save the best result for this carrier
+                        best_result = {
+                            "carrier_code": carrier_code,
+                            "carrier_name": carrier_name,
+                            "area_code": area_code,
+                            "parcels": parcels,
+                            "volume": volume,
+                            "weight": weight,
+                            "size": size,
+                            "cost": shipping_fee,
+                            "lead_time": lead_time,
+                            "estimated_delivery_date": est_delivery_date.isoformat(),
+                            "meets_deadline": meets_deadline,
+                            "is_capacity_available": has_capacity and has_special_capacity,
+                            "unavailable_reason": "" if is_available else self._get_unavailability_reason(
+                                has_capacity, has_special_capacity, True, "", 
+                                meets_deadline, est_delivery_date, delivery_deadline
+                            )
+                        }
+                
+                # Add the best result for this carrier to the carrier_results list
+                if best_result:
+                    carrier_results.append(best_result)
+                    
+                    # Track the lowest cost carrier overall
+                    if best_result["cost"] < lowest_cost:
+                        lowest_cost = best_result["cost"]
+                        lowest_cost_carrier = {
+                            "carrier_code": carrier_code,
+                            "carrier_name": carrier_name,
+                            "cost": best_result["cost"]
+                        }
             
             # Sort carriers by cost (only those that meet all requirements)
             sorted_carriers = sorted(
@@ -874,15 +910,44 @@ class FeeCalculationService:
                         break
                 
                 if not cheapest_in_results:
-                    # Add a complete record for the cheapest carrier
+                    # Find carrier details
                     for carrier in carriers:
                         if carrier.HANMA02001 == lowest_cost_carrier["carrier_code"]:
-                            est_delivery_date, lead_time = self.calculate_delivery_date(
-                                carrier_code=carrier.HANMA02001,
-                                area_code=area_code,
-                                jis_code=jis_code,
-                                shipping_date=shipping_date
-                            ) or (None, 0)
+                            # Try to find the best area code for this carrier
+                            best_area_code = None
+                            best_shipping_fee = float('inf')
+                            best_est_delivery_date = None
+                            best_lead_time = None
+                            
+                            for area_code in area_codes:
+                                shipping_fee = self.calculate_shipping_fee(
+                                    carrier_code=carrier.HANMA02001,
+                                    area_code=area_code,
+                                    parcels=parcels,
+                                    volume=volume,
+                                    weight=weight,
+                                    size=size
+                                )
+                                
+                                if shipping_fee is not None and shipping_fee < best_shipping_fee:
+                                    best_shipping_fee = shipping_fee
+                                    best_area_code = area_code
+                                    
+                                    # Get delivery date for this area code
+                                    est_delivery_date, lead_time = self.calculate_delivery_date(
+                                        carrier_code=carrier.HANMA02001,
+                                        area_code=area_code,
+                                        jis_code=jis_code,
+                                        shipping_date=shipping_date
+                                    )
+                                    
+                                    if est_delivery_date:
+                                        best_est_delivery_date = est_delivery_date
+                                        best_lead_time = lead_time
+                            
+                            # Use default values if no valid area code found
+                            est_delivery_date = best_est_delivery_date or None
+                            lead_time = best_lead_time or 0
                             
                             has_capacity = self.check_carrier_capacity(carrier.HANMA02001, volume, weight)
                             has_special_capacity = self.check_special_capacity(carrier.HANMA02001, shipping_date, volume, weight)
@@ -893,6 +958,7 @@ class FeeCalculationService:
                             carrier_results.append({
                                 "carrier_code": carrier.HANMA02001,
                                 "carrier_name": carrier.HANMA02002,
+                                "area_code": best_area_code,
                                 "parcels": parcels,
                                 "volume": volume,
                                 "weight": weight,

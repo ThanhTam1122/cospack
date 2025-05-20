@@ -192,14 +192,56 @@ class CarrierSelectionService:
             The created waybill ID as a string, or empty string on failure
         """
         try:
-            #todo すでに同じ条件の送り状があれば、そちらのidを返すようにお願いいたします
-            waybill_id = waybill_id = int(time.time() * 1000) % 10**10
+            # Check if a waybill with the same conditions already exists
+            shipping_date_int = int(shipping_date.strftime("%Y%m%d"))
+            delivery_date_int = int(delivery_deadline.strftime("%Y%m%d"))
+            
+            filters = [
+                Waybill.HANRA41002 == shipping_date_int,
+                Waybill.HANRA41003 == delivery_date_int,
+                Waybill.HANRA41004 == customer_code,
+                Waybill.HANRA41009 == postal_code if postal_code else Waybill.HANRA41009.is_(None)
+            ]
+            
+            if delivery_name1:
+                filters.append(Waybill.HANRA41007 == delivery_name1)
+            if delivery_name2:
+                filters.append(Waybill.HANRA41008 == delivery_name2)
+            if delivery_address1:
+                filters.append(Waybill.HANRA41010 == delivery_address1)
+            if delivery_address2:
+                filters.append(Waybill.HANRA41011 == delivery_address2)
+            if delivery_address3:
+                filters.append(Waybill.HANRA41012 == delivery_address3)
+                
+            if delivery_info1 not in [None, ""]:
+                try:
+                    filters.append(Waybill.HANRA41005 == int(delivery_info1))
+                except (ValueError, TypeError):
+                    pass
+                    
+            if delivery_info2 not in [None, ""]:
+                try:
+                    filters.append(Waybill.HANRA41006 == int(delivery_info2))
+                except (ValueError, TypeError):
+                    pass
+            
+            # Check for existing waybill
+            existing_waybill = self.db.query(Waybill).filter(and_(*filters)).first()
+            
+            if existing_waybill:
+                waybill_id = existing_waybill.HANRA41001
+                logger.info(f"Found existing waybill with ID {waybill_id} matching the same conditions")
+                return waybill_id
+            
+            # If no existing waybill, create a new one
+            waybill_id = int(time.time() * 1000) % 10**10
             
             # Create new waybill record
             waybill = Waybill(
                 HANRA41001=waybill_id,                    # Waybill code
-                HANRA41002=int(shipping_date.strftime("%Y%m%d")),                 # Planned shipping date
-                HANRA41003=int(delivery_deadline.strftime("%Y%m%d")),             # Delivery date
+                HANRA41002=shipping_date_int,                 # Planned shipping date
+                HANRA41003=delivery_date_int,             # Delivery date
                 HANRA41004=customer_code,                 # Customer code
                 HANRA41005=int(delivery_info1) if delivery_info1 not in (None, "") else None,        # Delivery info 1
                 HANRA41006=int(delivery_info2) if delivery_info2 not in (None, "") else None,        # Delivery info 2
