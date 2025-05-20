@@ -422,96 +422,96 @@ class FeeCalculationService:
             logger.warning(f"No transportation fee records found for carrier '{carrier_code}' and area {area_code}")
             return None
 
-        # Calculate fee for each parcel size separately
+        # Find the appropriate fee record for the entire shipment
+        applicable_records = []
+        for record in fee_records:
+            # Convert all values to float to avoid type issues
+            max_weight = self.to_float(record.HANMA46004)
+            max_volume = self.to_float(record.HANMA46005)
+            max_size = self.to_float(record.HANMA46006)
+            
+            # Check if this record's constraints are satisfied for the entire shipment
+            weight_ok = max_weight is None or max_weight == 0 or weight <= max_weight
+            volume_ok = max_volume is None or max_volume == 0 or volume <= max_volume
+            size_ok = max_size is None or max_size == 0 or size <= max_size
+            
+            if weight_ok and volume_ok and size_ok:
+                applicable_records.append(record)
+        
+        if not applicable_records:
+            logger.warning(f"No applicable fee record found for shipment with volume={volume}, weight={weight}, size={size}")
+            return None
+        
+        # Use the most specific record for the shipment
+        def record_specificity(record):
+            specificity = 0
+            if record.HANMA46004 is not None and record.HANMA46004 > 0:
+                specificity += 1
+            if record.HANMA46005 is not None and record.HANMA46005 > 0:
+                specificity += 1
+            if record.HANMA46006 is not None and record.HANMA46006 > 0:
+                specificity += 1
+            return specificity
+        
+        applicable_records.sort(key=record_specificity, reverse=True)
+        selected_record = applicable_records[0]
+        
+        # Calculate fee based on fee type
+        fee_type = self.to_int(selected_record.HANMA46010)
+        base_fee = self.to_float(selected_record.HANMA46009)
+        volume_unit_price = self.to_float(selected_record.HANMA46007)
+        min_threshold = self.to_float(selected_record.HANMA46008)
         total_fee = 0.0
         
-        # Group parcels by size for collective fee calculation
-        parcels_by_size = {}
-        for parcel in parcels:
-            parcel_size = self.to_float(parcel.get("size", size))
-            parcel_count = self.to_int(parcel.get("count", 1))
-            
-            if parcel_size not in parcels_by_size:
-                parcels_by_size[parcel_size] = 0
-            parcels_by_size[parcel_size] += parcel_count
+        logger.info(f"Selected fee record type={fee_type}, base_fee={base_fee}, unit_price={volume_unit_price}")
         
-        # Process each parcel size
-        for parcel_size, total_count in parcels_by_size.items():
-            # Find the appropriate fee record for this parcel size
-            applicable_records = []
-            for record in fee_records:
-                # Convert all values to float to avoid type issues
-                max_weight = self.to_float(record.HANMA46004)
-                max_volume = self.to_float(record.HANMA46005)
-                max_size = self.to_float(record.HANMA46006)
-                
-                # Check if this record's constraints are satisfied for this parcel
-                weight_ok = max_weight is None or max_weight == 0 or weight <= max_weight
-                volume_ok = max_volume is None or max_volume == 0 or volume <= max_volume
-                size_ok = max_size is None or max_size == 0 or parcel_size <= max_size
-                
-                if weight_ok and volume_ok and size_ok:
-                    applicable_records.append(record)
-            
-            if not applicable_records:
-                logger.warning(f"No applicable fee record found for parcel size {parcel_size}")
-                return None
-            
-            # Use the most specific record for this parcel
-            def record_specificity(record):
-                specificity = 0
-                if record.HANMA46004 is not None and record.HANMA46004 > 0:
-                    specificity += 1
-                if record.HANMA46005 is not None and record.HANMA46005 > 0:
-                    specificity += 1
-                if record.HANMA46006 is not None and record.HANMA46006 > 0:
-                    specificity += 1
-                return specificity
-            
-            applicable_records.sort(key=record_specificity, reverse=True)
-            selected_record = applicable_records[0]
-            
-            # Calculate fee based on fee type
-            fee_type = self.to_int(selected_record.HANMA46010)
-            base_fee = self.to_float(selected_record.HANMA46009)
-            volume_unit_price = self.to_float(selected_record.HANMA46007)
-            min_threshold = self.to_float(selected_record.HANMA46008)
-            
-            if fee_type == 1:
-                # Type 1: Fixed amount - apply once for all parcels of this size
-                total_fee += base_fee
-            
-            elif fee_type == 2:
-                # Type 2: Volume-based price - calculate collectively for all parcels of this size
-                if volume_unit_price > 0:
-                    # Calculate the proportion of total volume for this parcel size
-                    total_parcel_count = sum(p.get("count", 1) for p in parcels)
-                    size_proportion = total_count / total_parcel_count
-                    parcel_volume = volume * size_proportion
-                    
-                    # Apply min threshold once for the collective calculation
-                    billable_volume = max(0, parcel_volume - min_threshold)
-                    # Round up to integer
-                    billable_volume = math.ceil(billable_volume)
-                    volume_fee = billable_volume * volume_unit_price
-                    total_fee += base_fee + volume_fee
-                else:
-                    total_fee += base_fee
-            
-            elif fee_type == 3:
-                # Type 3: Per parcel - calculate separately for each individual parcel
-                total_fee += base_fee * total_count
-            
+        if fee_type == 1:
+            # Type 1: Fixed amount - apply once for the entire shipment
+            total_fee = base_fee
+            logger.info(f"Fee type 1 (Fixed Amount): {total_fee}")
+        
+        elif fee_type == 2:
+            # Type 2: Volume-based price - calculate for the entire shipment
+            if volume_unit_price > 0:
+                # Apply min threshold once for the entire calculation
+                billable_volume = max(0, volume - min_threshold)
+                # Round up to integer
+                billable_volume = math.ceil(billable_volume)
+                volume_fee = billable_volume * volume_unit_price
+                total_fee = base_fee + volume_fee
+                logger.info(f"Fee type 2 (Volume-based): base={base_fee}, volume_fee={volume_fee}, total={total_fee}")
             else:
-                # Unknown fee type, use base fee
-                logger.warning(f"Unknown fee type {fee_type} for size {parcel_size}, using base fee {base_fee}")
-                total_fee += base_fee
+                total_fee = base_fee
+                logger.info(f"Fee type 2 (Volume-based, no unit price): {total_fee}")
+        
+        elif fee_type == 3:
+            # Type 3: Per parcel - calculate separately for each individual parcel
+            # Group parcels by size for individual fee calculation
+            parcels_by_size = {}
+            for parcel in parcels:
+                parcel_size = self.to_float(parcel.get("size", size))
+                parcel_count = self.to_int(parcel.get("count", 1))
+                
+                if parcel_size not in parcels_by_size:
+                    parcels_by_size[parcel_size] = 0
+                parcels_by_size[parcel_size] += parcel_count
+            
+            # Calculate fee for each parcel size
+            for parcel_size, total_count in parcels_by_size.items():
+                parcel_fee = base_fee * total_count
+                total_fee += parcel_fee
+                logger.info(f"Fee type 3 (Per parcel): size={parcel_size}, count={total_count}, fee={parcel_fee}")
+        
+        else:
+            # Unknown fee type, use base fee
+            logger.warning(f"Unknown fee type {fee_type}, using base fee {base_fee}")
+            total_fee = base_fee
         
         if total_fee <= 0:
             logger.warning(f"Calculated fee is zero or negative ({total_fee}), using null")
             return None
             
-        logger.info(f"Final shipping fee across all parcel sizes: {total_fee}")
+        logger.info(f"Final shipping fee: {total_fee}")
         return total_fee
 
     def check_carrier_capacity(self, carrier_code: str, volume: float, weight: float) -> bool:
@@ -1184,52 +1184,3 @@ class FeeCalculationService:
         estimated_delivery = shipping_date + timedelta(days=lead_time)
         
         return estimated_delivery, lead_time
-        
-    def get_carrier_tariff(self, carrier_code: str, area_code: int) -> Optional[Dict[str, Any]]:
-        """
-        Get tariff information for a carrier and area
-        
-        Args:
-            carrier_code: The carrier code
-            area_code: The transportation area code
-            
-        Returns:
-            Dictionary with tariff information or None if not found
-        """
-        try:
-            # Get transportation fee records for this carrier and area
-            fee_records = self.db.query(TransportationFee).filter(
-                TransportationFee.HANMA46002 == carrier_code,
-                TransportationFee.HANMA46003 == str(area_code)
-            ).all()
-            
-            if not fee_records:
-                logger.warning(f"No tariff found for carrier {carrier_code} and area {area_code}")
-                return None
-                
-            # Process records to create a structured tariff
-            tariff = {
-                "carrier_code": carrier_code,
-                "area_code": area_code,
-                "flat_fee": None,
-                "size_fees": {}
-            }
-            
-            # Process each fee record
-            for record in fee_records:
-                fee_type = self.to_int(record.HANMA46010)
-                base_fee = self.to_float(record.HANMA46009)
-                max_size = self.to_float(record.HANMA46006)
-                
-                # Store size-based fees
-                if max_size > 0:
-                    tariff["size_fees"][max_size] = base_fee
-                # Store flat fee if no size specified
-                elif tariff["flat_fee"] is None:
-                    tariff["flat_fee"] = base_fee
-                
-            return tariff
-            
-        except Exception as e:
-            logger.error(f"Error getting carrier tariff: {str(e)}")
-            return None 
