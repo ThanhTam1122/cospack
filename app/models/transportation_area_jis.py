@@ -16,7 +16,7 @@ class TransportationAreaJISMapping(Base):
     HANMA44002 = Column("HANMA44002", CHAR(5), nullable=False)
 
     # 3. 更新番号 - Update Version Number, default=0, +1 on update
-    HANMA44999 = Column("HANMA44999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    HANMA44999 = Column("HANMA44999", DECIMAL(9, 0), default=0)
 
     # 4. 登録日時 - Insert timestamp
     HANMA44INS = Column("HANMA44INS", DECIMAL(20, 6), nullable=True, 

@@ -21,7 +21,7 @@ class Waybill(Base):
     HANRA41010 = Column("HANRA41010", NVARCHAR(32), nullable=True)  # 納品先住所1
     HANRA41011 = Column("HANRA41011", NVARCHAR(32), nullable=True)  # 納品先住所2
     HANRA41012 = Column("HANRA41012", NVARCHAR(32), nullable=True)  # 納品先住所3
-    HANRA41999 = Column("HANRA41999", DECIMAL(9, 0), primary_key=True, autoincrement=True, nullable=False, default=0) #更新番号
+    HANRA41999 = Column("HANRA41999", DECIMAL(9, 0), nullable=False, default=0) #更新番号
     HANRA41INS = Column("HANRA41INS", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
     )) #登録日時

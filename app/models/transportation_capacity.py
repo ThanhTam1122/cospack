@@ -22,7 +22,7 @@ class TransportationCapacity(Base):
     HANMA47004 = Column("HANMA47004", DECIMAL(3, 0), nullable=True)
 
     # 5. 更新番号 - Update Number (DECIMAL(9,0), starts at 0, auto +1)
-    HANMA47999 = Column("HANMA47999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    HANMA47999 = Column("HANMA47999", DECIMAL(9, 0), nullable=False, default=0)
 
     # 6. 登録日時 - Created Timestamp (DECIMAL(14,6))
     HANMA47INS = Column("HANMA47INS", DECIMAL(20, 6), nullable=True, 

@@ -20,7 +20,7 @@ class TransportationArea(Base):
     HANMA43003 = Column("HANMA43003", DECIMAL(5, 0), nullable=False, server_default=text("0"))
 
     # 4. 更新番号 - Update Version Number, default 0 on insert, +1 on update
-    HANMA43999 = Column("HANMA43999", DECIMAL(9, 0), autoincrement=True, nullable=False, server_default=text("0"))
+    HANMA43999 = Column("HANMA43999", DECIMAL(9, 0), server_default=text("0"))
 
     # 5. 登録日時 - Insert Timestamp (yyyymmddhhmiss.ffffff)
     HANMA43INS = Column("HANMA43INS", DECIMAL(20, 6), nullable=True, 

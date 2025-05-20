@@ -19,7 +19,7 @@ class PostalJISMapping(Base):
     # Postal Code (郵便番号)
     HANMA45002 = Column("HANMA45002", CHAR(20), nullable=False)
     # Update Number (更新番号)
-    HANMA45999 = Column("HANMA45999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    HANMA45999 = Column("HANMA45999", DECIMAL(9, 0), nullable=False, default=0)
     # Date and time of registration  (登録日時)
     HANMA45INS = Column("HANMA45INS", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
