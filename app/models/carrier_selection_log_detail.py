@@ -29,5 +29,5 @@ class CarrierSelectionLogDetail(Base):
     ))
     # Composite Primary Key
     __table_args__ = (
-        PrimaryKeyConstraint('HANRA43001', 'HANRA43002', 'HANRA43003', 'HANRA43999', name='pk_carrier_selection_log_detail'),
+        PrimaryKeyConstraint('HANRA43001', 'HANRA43002', name='pk_carrier_selection_log_detail'),
     )
