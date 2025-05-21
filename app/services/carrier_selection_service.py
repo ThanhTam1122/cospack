@@ -793,19 +793,20 @@ class CarrierSelectionService:
                         logger.info(f"Using fallback: Found cheapest carrier {cheapest_carrier['carrier_code']} but it doesn't meet constraints")
                         
                         # Create a waybill with unassigned carrier and log the selection
-                        waybill_id = self.update_database(
-                            shipping_date=waybill["shipping_date"],
-                            delivery_deadline=waybill["delivery_date"],
-                            customer_code=customer_code,
-                            postal_code=waybill.get("dest_postal", ""),
-                            delivery_info1=waybill.get("delivery_info1", ""),
-                            delivery_info2=waybill.get("delivery_info2", ""),
-                            delivery_name1=waybill.get("dest_name1", ""),
-                            delivery_name2=waybill.get("dest_name2", ""),
-                            delivery_address1=waybill.get("dest_addr1", ""),
-                            delivery_address2=waybill.get("dest_addr2", ""),
-                            delivery_address3=waybill.get("dest_addr3", "")
-                        )
+                        # waybill_id = self.update_database(
+                        #     shipping_date=waybill["shipping_date"],
+                        #     delivery_deadline=waybill["delivery_date"],
+                        #     customer_code=customer_code,
+                        #     postal_code=waybill.get("dest_postal", ""),
+                        #     delivery_info1=waybill.get("delivery_info1", ""),
+                        #     delivery_info2=waybill.get("delivery_info2", ""),
+                        #     delivery_name1=waybill.get("dest_name1", ""),
+                        #     delivery_name2=waybill.get("dest_name2", ""),
+                        #     delivery_address1=waybill.get("dest_addr1", ""),
+                        #     delivery_address2=waybill.get("dest_addr2", ""),
+                        #     delivery_address3=waybill.get("dest_addr3", "")
+                        # )
+                        waybill_id = -1
                         
                         if not waybill_id:
                             logger.warning(f"Failed to create waybill record for waybill {waybill_index}")
