@@ -1,5 +1,5 @@
 from sqlalchemy.sql.expression import text
-from sqlalchemy import Column, DECIMAL, CHAR, event
+from sqlalchemy import Column, DECIMAL, CHAR, PrimaryKeyConstraint
 from app.db.base import Base
 from datetime import datetime
 
@@ -14,15 +14,15 @@ class SpecialCapacity(Base):
     HANMA48001 = Column("HANMA48001", CHAR(2), primary_key=True, nullable=False)
 
     # 2. 限度才数 - Capacity Limit (DECIMAL(10,0))
-    HANMA48002 = Column("HANMA48002", DECIMAL(8, 0), nullable=True)
+    HANMA48002 = Column("HANMA48002", DECIMAL(8, 0), nullable=False)
 
     # 3. 最大重量（kg） - Max Weight (DECIMAL(10,0))
-    HANMA48003 = Column("HANMA48003", DECIMAL(10, 0), nullable=True)
+    HANMA48003 = Column("HANMA48003", DECIMAL(10, 0), nullable=False)
 
     # 4. 才数換算重量（kg） - Weight per Volume (DECIMAL(3,0))
-    HANMA48004 = Column("HANMA48004", DECIMAL(10, 0), nullable=True)
+    HANMA48004 = Column("HANMA48004", DECIMAL(10, 0), nullable=False)
 
-    # 5. 更新番号 - Update Number (DECIMAL(9,0), starts at 0, auto +1)
+    # 5. 更新番号 - Update Number (DECIMAL(9,0))
     HANMA48999 = Column("HANMA48999", DECIMAL(9, 0), nullable=False, default=0)
 
     # 6. 登録日時 - Created Timestamp (DECIMAL(14,6))
@@ -34,6 +34,11 @@ class SpecialCapacity(Base):
     HANMA48UPD = Column("HANMA48UPD", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
     ))
+
+    # Composite Primary Key
+    __table_args__ = (
+        PrimaryKeyConstraint('HANMA48001', 'HANMA48002', name='pk_special_capacity'),
+    )
 
     def __repr__(self):
         return f"<SpecialCapacity carrier='{self.HANMA48001}'>"

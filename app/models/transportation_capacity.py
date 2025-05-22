@@ -13,13 +13,13 @@ class TransportationCapacity(Base):
     HANMA47001 = Column("HANMA47001", CHAR(2), primary_key=True, nullable=False)
 
     # 2. 限度才数 - Capacity Limit (DECIMAL(10,0))
-    HANMA47002 = Column("HANMA47002", DECIMAL(10, 0), nullable=True)
+    HANMA47002 = Column("HANMA47002", DECIMAL(10, 0), nullable=False)
 
     # 3. 最大重量（kg） - Max Weight (DECIMAL(10,0))
-    HANMA47003 = Column("HANMA47003", DECIMAL(10, 0), nullable=True)
+    HANMA47003 = Column("HANMA47003", DECIMAL(10, 0), nullable=False)
 
     # 4. 才数換算重量（kg） - Weight per Volume (DECIMAL(3,0))
-    HANMA47004 = Column("HANMA47004", DECIMAL(3, 0), nullable=True)
+    HANMA47004 = Column("HANMA47004", DECIMAL(3, 0), nullable=False)
 
     # 5. 更新番号 - Update Number (DECIMAL(9,0), starts at 0, auto +1)
     HANMA47999 = Column("HANMA47999", DECIMAL(9, 0), nullable=False, default=0)
