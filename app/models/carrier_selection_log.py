@@ -18,7 +18,7 @@ class CarrierSelectionLog(Base):
     HANRA42006 = Column("HANRA42006", CHAR(2), nullable=False)  # 最安運送会社コード
     HANRA42007 = Column("HANRA42007", CHAR(2), nullable=False)  # 選定運送会社コード
     HANRA42008 = Column("HANRA42008", NVARCHAR(255), nullable=True)  # 選定理由
-    HANRA42999 = Column("HANRA42999", DECIMAL(9, 0), primary_key=True, autoincrement=True, nullable=False) #更新番号
+    HANRA42999 = Column("HANRA42999", DECIMAL(9, 0), nullable=False, default=0) #更新番号
     HANRA42INS = Column("HANRA42INS", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
     ))

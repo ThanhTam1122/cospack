@@ -9,6 +9,8 @@ if getattr(sys, 'frozen', False):
     base_path = sys._MEIPASS
 else:
     base_path = os.path.dirname(__file__)
+    for _ in range(2): # 2階層上がプロジェクトルート
+        base_path = os.path.dirname(base_path)
 env_path = os.path.join(base_path, ".env")
 
 class Settings(BaseSettings):

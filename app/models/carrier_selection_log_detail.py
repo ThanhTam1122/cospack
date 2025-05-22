@@ -18,7 +18,7 @@ class CarrierSelectionLogDetail(Base):
     # 見積個口数 - Estimated Parcel Count
     HANRA43004 = Column("HANRA43004", DECIMAL(5, 0), nullable=False)
     # 更新番号 - Update Number
-    HANRA43999 = Column("HANRA43999", DECIMAL(9, 0), autoincrement=True, nullable=False)
+    HANRA43999 = Column("HANRA43999", DECIMAL(9, 0), nullable=False, default=0)
     # 登録日時 - Date and time of registration
     HANRA43INS = Column("HANRA43INS", DECIMAL(20, 6), nullable=True, 
                         server_default=text("CONVERT(decimal(20,6), FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss.ffffff'))"
@@ -29,5 +29,5 @@ class CarrierSelectionLogDetail(Base):
     ))
     # Composite Primary Key
     __table_args__ = (
-        PrimaryKeyConstraint('HANRA43002' ,'HANRA43003', 'HANRA43999', name='pk_carrier_selection_log_detail'),
+        PrimaryKeyConstraint('HANRA43001', 'HANRA43002', name='pk_carrier_selection_log_detail'),
     )
