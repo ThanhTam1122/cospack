@@ -41,7 +41,7 @@ class TransportationFee(Base):
     HANMA46010 = Column("HANMA46010", DECIMAL(1, 0), nullable=False)
 
     # 11. 更新番号 - Update Version Number (default 0, +1 on update)
-    HANMA46999 = Column("HANMA46999", DECIMAL(9, 0), autoincrement=True, nullable=False, default=0)
+    HANMA46999 = Column("HANMA46999", DECIMAL(9, 0), nullable=False, default=0)
 
     # 12. 登録日時 - Created Timestamp (DECIMAL(14,6))
     HANMA46INS = Column("HANMA46INS",DECIMAL(20, 6), nullable=True, 
