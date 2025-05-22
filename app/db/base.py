@@ -120,6 +120,9 @@ def create_db_engine(max_retries=3, retry_delay=2):
     """Create database engine with retry logic"""
     retries = 0
     last_error = None
+
+    if settings.IS_BUILDING:
+        return
     
     while retries < max_retries:
         try:
