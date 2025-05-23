@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     SQL_PASSWORD: Optional[str] = None
 
     CARRIER_UNASSIGNED_CODE: str = "95"
-    IS_BUILDING: bool = False;
+    IS_BUILDING: bool = False
+    LOG_LEVEL: str = "INFO"
 
     class Config:
         env_file = get_env_path()

@@ -22,6 +22,7 @@ from app.services.fee_calculation_service import FeeCalculationService
 
 # Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(settings.LOG_LEVEL)
 
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm
@@ -630,7 +631,7 @@ class CarrierSelectionService:
                 carrier_selection_log = self.db.query(CarrierSelectionLog).filter(
                     CarrierSelectionLog.HANRA42002 == waybill_code
                 ).order_by(
-                    desc(CarrierSelectionLog.HAN10M010_INS)
+                    desc(CarrierSelectionLog.HANRA42INS)
                 ).limit(10).all()
 
                 if carrier_selection_log:

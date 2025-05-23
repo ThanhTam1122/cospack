@@ -6,6 +6,8 @@ import math
 import logging
 from decimal import Decimal
 
+from app.core.config import settings
+
 from app.models.product_master import ProductMaster
 from app.models.product_sub_master import ProductSubMaster
 from app.models.holiday_calendar_master import HolidayCalendarMaster
@@ -21,6 +23,7 @@ from app.models.special_capacity import SpecialCapacity
 
 # Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(settings.LOG_LEVEL)
 
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm (1 volume unit = 30.3cm cube)
