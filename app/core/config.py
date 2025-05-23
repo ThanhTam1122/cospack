@@ -9,10 +9,6 @@ def is_running_from_pyinstaller():
     """PyInstallerでビルドされた実行ファイルから実行されているかを判定"""
     return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
-def is_building():
-    """ビルド時（PyInstallerの実行中）かどうかを判定"""
-    return not is_running_from_pyinstaller() and 'PyInstaller' in sys.modules
-
 def get_env_path():
     if is_running_from_pyinstaller():
         base_path = sys._MEIPASS
@@ -66,11 +62,15 @@ class Settings(BaseSettings):
         self.SQL_USER = self.DEV_SQL_USER if self.ENV == "Development" else self.PROD_SQL_USER
         self.SQL_PASSWORD = self.DEV_SQL_PASSWORD if self.ENV == "Development" else self.PROD_SQL_PASSWORD
         encoded_password = urllib.parse.quote_plus(self.SQL_PASSWORD)
-        self.IS_BUILDING = is_building()
+        self.IS_BUILDING = not is_running_from_pyinstaller() and self.IS_BUILDING
 
+        server_url = self.SQL_SERVER
+        if self.SQL_PORT:
+            server_url += f":{self.SQL_PORT}"
+        
         self.DATABASE_URL = (
             f"mssql+pyodbc://{self.SQL_USER}:{encoded_password}@"
-            f"{self.SQL_SERVER}:{self.SQL_PORT}/{self.SQL_DB}"
+            f"{server_url}/{self.SQL_DB}"
             "?driver=ODBC+Driver+17+for+SQL+Server"
             "&TrustServerCertificate=yes"
             "&Encrypt=no"

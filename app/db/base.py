@@ -121,6 +121,7 @@ def create_db_engine(max_retries=3, retry_delay=2):
     retries = 0
     last_error = None
 
+    print('is_building:' + str(settings.IS_BUILDING))
     if settings.IS_BUILDING:
         return
     
