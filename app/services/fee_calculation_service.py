@@ -5,6 +5,8 @@ import math
 import logging
 from decimal import Decimal
 
+from app.core.config import settings
+
 from app.models.product_master import ProductMaster
 from app.models.product_sub_master import ProductSubMaster
 from app.models.holiday_calendar_master import HolidayCalendarMaster
@@ -19,6 +21,7 @@ from app.models.special_capacity import SpecialCapacity
 
 # Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(settings.LOG_LEVEL)
 
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm (1 volume unit = 30.3cm cube)
@@ -386,7 +389,7 @@ class FeeCalculationService:
                    
         return total_parcels, total_volume, total_weight, max_size, parcels_info
 
-    def calculate_shipping_fee(self, carrier_code: str, area_code: int, 
+    def calculate_shipping_fee(self, carrier_code: str, area_code: int,
                              parcels: List[Dict], volume: float, weight: float, size: float = 0) -> Optional[float]:
         """
         Calculate shipping fee based on carrier, area, and package metrics
@@ -427,11 +430,12 @@ class FeeCalculationService:
             max_weight = self.to_float(record.HANMA46004)
             max_volume = self.to_float(record.HANMA46005)
             max_size = self.to_float(record.HANMA46006)
-            
+
             # Check if this record's constraints are satisfied for the entire shipment
             weight_ok = max_weight is None or max_weight == 0 or weight <= max_weight
             volume_ok = max_volume is None or max_volume == 0 or volume <= max_volume
             size_ok = max_size is None or max_size == 0 or size <= max_size
+            #todo fee_typeが3の場合、こちらのチェックも個口ごとに行い、base_feeを個口ごとに求める必要がございます。
             
             if weight_ok and volume_ok and size_ok:
                 applicable_records.append(record)
@@ -496,7 +500,7 @@ class FeeCalculationService:
             
             # Calculate fee for each parcel size
             for parcel_size, total_count in parcels_by_size.items():
-                parcel_fee = base_fee * total_count
+                parcel_fee = base_fee * total_count #todo こちらのbase_feeが個口ごとに変わります
                 total_fee += parcel_fee
                 logger.info(f"Fee type 3 (Per parcel): size={parcel_size}, count={total_count}, fee={parcel_fee}")
         

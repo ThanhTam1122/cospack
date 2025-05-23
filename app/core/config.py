@@ -5,13 +5,18 @@ import urllib.parse
 import sys
 import os
 
-if getattr(sys, 'frozen', False):
-    base_path = sys._MEIPASS
-else:
-    base_path = os.path.dirname(__file__)
-    for _ in range(2): # 2階層上がプロジェクトルート
-        base_path = os.path.dirname(base_path)
-env_path = os.path.join(base_path, ".env")
+def is_running_from_pyinstaller():
+    """PyInstallerでビルドされた実行ファイルから実行されているかを判定"""
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+def get_env_path():
+    if is_running_from_pyinstaller():
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(__file__)
+        for _ in range(2): # 2階層上がプロジェクトルート
+            base_path = os.path.dirname(base_path)
+    return os.path.join(base_path, ".env")
 
 class Settings(BaseSettings):
     APP_NAME: str = "Shipping App"
@@ -43,9 +48,11 @@ class Settings(BaseSettings):
     SQL_PASSWORD: Optional[str] = None
 
     CARRIER_UNASSIGNED_CODE: str = "95"
+    IS_BUILDING: bool = False
+    LOG_LEVEL: str = "INFO"
 
     class Config:
-        env_file = env_path
+        env_file = get_env_path()
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -56,10 +63,15 @@ class Settings(BaseSettings):
         self.SQL_USER = self.DEV_SQL_USER if self.ENV == "Development" else self.PROD_SQL_USER
         self.SQL_PASSWORD = self.DEV_SQL_PASSWORD if self.ENV == "Development" else self.PROD_SQL_PASSWORD
         encoded_password = urllib.parse.quote_plus(self.SQL_PASSWORD)
+        self.IS_BUILDING = not is_running_from_pyinstaller() and self.IS_BUILDING
 
+        server_url = self.SQL_SERVER
+        if self.SQL_PORT:
+            server_url += f":{self.SQL_PORT}"
+        
         self.DATABASE_URL = (
             f"mssql+pyodbc://{self.SQL_USER}:{encoded_password}@"
-            f"{self.SQL_SERVER}:{self.SQL_PORT}/{self.SQL_DB}"
+            f"{server_url}/{self.SQL_DB}"
             "?driver=ODBC+Driver+17+for+SQL+Server"
             "&TrustServerCertificate=yes"
             "&Encrypt=no"

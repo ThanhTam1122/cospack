@@ -20,6 +20,7 @@ from app.services.fee_calculation_service import FeeCalculationService
 
 # Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(settings.LOG_LEVEL)
 
 # Constants
 VOLUME_CUBE_SIZE = 30.3  # cm
@@ -153,7 +154,6 @@ class CarrierSelectionService:
                     except Exception as e:
                         logger.error(f"Error processing log detail for product {product.get('product_code', 'unknown')}: {str(e)}")
                         # Continue with other products
-            
             # Commit to save the log
             self.db.commit()
             logger.info(f"Saved carrier selection log with ID: {log_id}")
@@ -319,11 +319,10 @@ class CarrierSelectionService:
                         
                         # Update MeisaiKakucho if found
                         for meisai in meisai_records:
-                            # Store original carrier code in extension field 3
-                            meisai.HANR030009 = original_carrier or ""
+                            meisai.HANR030009 = carrier_code
                             
                             # Store new carrier code in extension field 4
-                            meisai.HANR030010 = carrier_code
+                            meisai.HANR030010 = carrier_code #todo carrier_nameを入れるようにお願いします
                             
                             # Update timestamp
                             meisai.HANR030UPD = timestamp
@@ -339,14 +338,11 @@ class CarrierSelectionService:
                     if current_carrier and current_carrier.strip() == carrier_code.strip():
                         logger.info(f"Carrier {carrier_code} is already assigned to picking work {work.HANW002001}-{work.HANW002002}-{work.HANW002003}")
                         continue
-                    
-                    # Store original carrier code if not already set
-                    if not work.HANW002A002 or work.HANW002A002 == "":
-                        work.HANW002A002 = work.HANW002A003 or ""
-                    
+
                     # Update changed carrier code
+                    work.HANW002A002 = carrier_code
                     work.HANW002A003 = carrier_code
-                    
+
                     # Update timestamp
                     work.HANW002UPD = timestamp
                     
@@ -634,7 +630,7 @@ class CarrierSelectionService:
                 carrier_selection_log = self.db.query(CarrierSelectionLog).filter(
                     CarrierSelectionLog.HANRA42002 == waybill_code
                 ).order_by(
-                    desc(CarrierSelectionLog.HAN10M010_INS)
+                    desc(CarrierSelectionLog.HANRA42INS)
                 ).limit(10).all()
 
                 if carrier_selection_log:
@@ -1015,7 +1011,7 @@ class CarrierSelectionService:
         return {
             "results": results,
             "success": success_count > 0,
-            "message": f"Processed {len(picking_ids)} pickings, {success_count} successful, {len(failed_pickings)} failed",
+            "message": f"選択件数：{len(picking_ids)} , 成功件数：{success_count} , 失敗件数：{len(failed_pickings)}",
             "failed_pickings": failed_pickings
         }
 

@@ -82,7 +82,7 @@ The application can be built into a standalone executable using PyInstaller.
     ```
     or
     ```bash
-    pyinstaller --noconfirm --windowed --clean --onefile --console --add-data ".env;." --hidden-import app --hidden-import app.main --name "CosPacks" main.py 
+    pyinstaller --noconfirm --windowed --clean --onefile --console --icon icon/cospacks.ico --add-data ".env;." --hidden-import app --hidden-import app.main --name "CosPacks" main.py 
     ```
    
     pattern.2 from created spec file
