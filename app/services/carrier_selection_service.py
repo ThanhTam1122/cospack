@@ -11,10 +11,8 @@ from decimal import Decimal, InvalidOperation
 from app.core.config import settings
 
 from app.models.picking import PickingManagement, PickingWork
-from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.carrier_selection_log import CarrierSelectionLog
 from app.models.carrier_selection_log_detail import CarrierSelectionLogDetail
-from app.models.transportation_company_master import TransportationCompanyMaster
 from app.models.juhachu import JuHachuHeader, MeisaiKakucho
 from app.models.waybill import Waybill
 
@@ -523,7 +521,7 @@ class CarrierSelectionService:
             # Add the picking work reference for later update
             waybills[group_key]["picking_works"].append(work)
             
-            # Get product information from the picking work
+            # Add product information from the picking work
             product_code = work.HANW002030  # Product code
             quantity = work.HANW002041 or 0  # 出荷数量 (Shipping quantity)
             
@@ -541,11 +539,16 @@ class CarrierSelectionService:
             # Get product details
             product_info = self.fee_calculator.get_product_info(product_code)
 
-            if product_info:
-                # Convert quantity to float for safe calculations
-                quantity_float = self.to_float(quantity)
-                
-                # Use float conversions throughout to avoid Decimal-float multiplication issues
+            # Convert quantity to float for safe calculations
+            quantity_float = self.to_float(quantity)
+            
+            # Check if product with same code already exists in the waybill
+            existing_product = next((p for p in waybills[group_key]["products"] if p["product_code"] == product_code), None)
+            
+            if existing_product:
+                existing_product["quantity"] += quantity_float
+                logger.info(f"Increased quantity of existing product '{product_code}' by {quantity_float}, new total: {existing_product['quantity']}")
+            elif product_info:
                 waybills[group_key]["products"].append({
                     "product_code": product_code,
                     "quantity": quantity_float,
@@ -556,10 +559,6 @@ class CarrierSelectionService:
                     "outer_box_dimensions": self._convert_dimensions_to_float(product_info.get("outer_box_dimensions", []))
                 })
             else:
-                # If product info not found, use default values
-                # Convert quantity to float for safe calculations
-                quantity_float = self.to_float(quantity)
-                
                 logger.warning(f"Product info not found for code '{product_code}', using default values")
                 waybills[group_key]["products"].append({
                     "product_code": product_code,

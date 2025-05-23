@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
 from typing import List, Optional, Dict, Any, Tuple, Union
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import math
 import logging
 from decimal import Decimal
@@ -12,7 +11,6 @@ from app.models.holiday_calendar_master import HolidayCalendarMaster
 from app.models.special_lead_time_master import SpecialLeadTimeMaster
 from app.models.transportation_company_master import TransportationCompanyMaster
 from app.models.transportation_company_sub_master import TransportationCompanySubMaster
-from app.models.transportation_area import TransportationArea
 from app.models.transportation_area_jis import TransportationAreaJISMapping
 from app.models.transportation_fee import TransportationFee
 from app.models.transportation_capacity import TransportationCapacity
@@ -41,11 +39,11 @@ class FeeCalculationService:
             
         try:
             mapping = self.db.query(PostalJISMapping).filter(
-                PostalJISMapping.HANMA45001 == postal_code
+                PostalJISMapping.HANMA45002 == postal_code
             ).first()
             
             if mapping:
-                return mapping.HANMA45002
+                return mapping.HANMA45001
             
             return None
             
