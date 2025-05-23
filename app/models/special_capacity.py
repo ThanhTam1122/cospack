@@ -11,7 +11,7 @@ class SpecialCapacity(Base):
     __tablename__ = "HAN99MA48UNSOTOKUCAPA"
 
     # 1. 運送会社コード - Carrier Code (Primary Key, CHAR(2))
-    HANMA48001 = Column("HANMA48001", CHAR(2), primary_key=True, nullable=False)
+    HANMA48001 = Column("HANMA48001", CHAR(2), nullable=False)
 
     # 2. 限度才数 - Capacity Limit (DECIMAL(10,0))
     HANMA48002 = Column("HANMA48002", DECIMAL(8, 0), nullable=False)
